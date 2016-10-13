@@ -1,7 +1,7 @@
 {
     "name": "apex-debug",
     "displayName": "Salesforce Apex Debug",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "publisher": "chuckjonas",
     "description": "Open Source extension for Salesforce debugging",
     "author": {
@@ -60,7 +60,7 @@
                 "type": "apex",
                 "label": "Apex Debug",
                 "program": "./out/apexDebug.js",
-                "runtime": "node",
+                "runtime": "apex",
                 "variables": {
                     "AskForProgramName": "extension.getProgramName"
                 },
@@ -72,7 +72,7 @@
                         "properties": {
                             "program": {
                                 "type": "string",
-                                "description": "Absolute path to a text file.",
+                                "description": "path to a log file",
                                 "default": "${workspaceRoot}/${command.AskForProgramName}"
                             },
                             "stopOnEntry": {

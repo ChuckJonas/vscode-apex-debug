@@ -43,7 +43,7 @@ but it is not connected to any real debugger.
 * Improve Configuration and Launch process
 * Improve Stack Variable display
 * Get rid of redudant/bad steps
-* Add support for break on exception
+* Add support for break on exception and watch variables
 * Improve general stability and error handling
 
 ## Contributing
