@@ -1,7 +1,7 @@
 {
     "name": "apex-debug",
     "displayName": "Salesforce Apex Debug",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "publisher": "chuckjonas",
     "description": "Open Source extension for Salesforce debugging",
     "author": {
@@ -47,7 +47,7 @@
     },
     "main": "./out/extension",
     "activationEvents": [
-        "onCommand:extension.getProgramName"
+        "onCommand:extension.apex.getProgramName"
     ],
     "contributes": {
         "breakpoints": [
@@ -62,7 +62,7 @@
                 "program": "./out/apexDebug.js",
                 "runtime": "apex",
                 "variables": {
-                    "AskForProgramName": "extension.getProgramName"
+                    "AskForProgramName": "extension.apex.getProgramName"
                 },
                 "configurationAttributes": {
                     "launch": {
@@ -83,7 +83,7 @@
                         }
                     }
                 },
-                "initialConfigurations": "extension.provideInitialConfigurations"
+                "initialConfigurations": "extension.apex.provideInitialConfigurations"
             }
         ]
     }
