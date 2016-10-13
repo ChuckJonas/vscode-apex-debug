@@ -1,91 +1,90 @@
 {
-	"name": "apex-debug",
-	"displayName": "Salesforce Apex Debug",
-	"version": "0.0.1",
-	"publisher": "charliejonas",
-	"description": "Open Source extension for Salesforce debugging",
-	"author": {
-		"name": "Charlie Jonas",
-		"email": "charlie@callawaycloudconsulting.com"
-	},
-	"engines": {
-		"vscode": "^1.1.0",
-		"node": "^5.10.0"
-	},
-	"icon": "/images/apex-debug-icon.png",
-	"categories": [
-		"Debuggers"
-	],
-	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/ChuckJonas/vscode-apex-debug.git"
-	},
-	"bugs": {
-		"url": "https://github.com/chuckjonas/vscode-apex-debug/issues"
-	},
-	"dependencies": {
-		"vscode-debugprotocol": "^1.13.0",
-		"vscode-debugadapter": "^1.13.0"
-	},
-	"devDependencies": {
-		"@types/es6-collections": "^0.5.29",
-		"@types/es6-promise": "0.0.32",
-		"@types/mocha": "^2.2.32",
-		"@types/node": "^6.0.39",
-		"typescript": "^2.0.2",
-		"mocha": "^3.0.2",
-		"vscode": "^0.11.18",
-		"vscode-debugadapter-testsupport": "^1.13.0"
-	},
-	"scripts": {
-		"prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
-		"compile": "node ./node_modules/typescript/bin/tsc -p ./src",
-		"watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
-		"test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
-		"postinstall": "node ./node_modules/vscode/bin/install"
-	},
-	"main": "./out/extension",
-	"activationEvents": [
-		"onCommand:extension.getProgramName"
-	],
-	"contributes": {
-		"breakpoints": [
-			{
-				"language": "Apex"
-			}
-		],
-		"debuggers": [
-			{
-				"type": "apex",
-				"label": "Apex Debug",
-
-				"program": "./out/apexDebug.js",
-				"runtime": "node",
-
-				"variables": {
-					"AskForProgramName": "extension.getProgramName"
-				},
-
-				"configurationAttributes": {
-					"launch": {
-						"required": [ "program" ],
-						"properties": {
-							"program": {
-								"type": "string",
-								"description": "Absolute path to a text file.",
-								"default": "${workspaceRoot}/${command.AskForProgramName}"
-							},
-							"stopOnEntry": {
-								"type": "boolean",
-								"description": "Automatically stop after launch.",
-								"default": true
-							}
-						}
-					}
-				},
-				"initialConfigurations": "extension.provideInitialConfigurations"
-			}
-		]
-	}
+    "name": "apex-debug",
+    "displayName": "Salesforce Apex Debug",
+    "version": "0.4.0",
+    "publisher": "chuckjonas",
+    "description": "Open Source extension for Salesforce debugging",
+    "author": {
+        "name": "Charlie Jonas",
+        "email": "charlie@callawaycloudconsulting.com"
+    },
+    "engines": {
+        "vscode": "^1.1.0",
+        "node": "^5.10.0"
+    },
+    "icon": "images/apex-debug-icon.png",
+    "categories": [
+        "Debuggers"
+    ],
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ChuckJonas/vscode-apex-debug.git"
+    },
+    "bugs": {
+        "url": "https://github.com/chuckjonas/vscode-apex-debug/issues"
+    },
+    "dependencies": {
+        "vscode-debugprotocol": "^1.13.0",
+        "vscode-debugadapter": "^1.13.0"
+    },
+    "devDependencies": {
+        "@types/es6-collections": "^0.5.29",
+        "@types/es6-promise": "0.0.32",
+        "@types/mocha": "^2.2.32",
+        "@types/node": "^6.0.39",
+        "typescript": "^2.0.2",
+        "mocha": "^3.0.2",
+        "vscode": "^0.11.18",
+        "vscode-debugadapter-testsupport": "^1.13.0"
+    },
+    "scripts": {
+        "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+        "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
+        "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+        "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "main": "./out/extension",
+    "activationEvents": [
+        "onCommand:extension.getProgramName"
+    ],
+    "contributes": {
+        "breakpoints": [
+            {
+                "language": "Apex"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "apex",
+                "label": "Apex Debug",
+                "program": "./out/apexDebug.js",
+                "runtime": "node",
+                "variables": {
+                    "AskForProgramName": "extension.getProgramName"
+                },
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Absolute path to a text file.",
+                                "default": "${workspaceRoot}/${command.AskForProgramName}"
+                            },
+                            "stopOnEntry": {
+                                "type": "boolean",
+                                "description": "Automatically stop after launch.",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": "extension.provideInitialConfigurations"
+            }
+        ]
+    }
 }
