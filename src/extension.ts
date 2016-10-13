@@ -2,17 +2,14 @@
 
 import * as vscode from 'vscode';
 
-const initialConfigurations = {
-	version: '0.2.0',
-	configurations: [
-	{
+const initialConfigurations =
+	[{
 		name: 'Apex-Debug',
 		type: 'apex',
 		request: 'launch',
 		program: '${workspaceRoot}/${command.AskForProgramName}',
 		stopOnEntry: true
-	}
-]}
+	}];
 
 export function activate(context: vscode.ExtensionContext) {
 

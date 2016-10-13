@@ -64,6 +64,9 @@ class ApexDebugSession extends DebugSession {
 
 	private _frameVariables = new Map<number, Map<string,DebugProtocol.Variable>>();
 
+	//used as workaround for VF where it doesn't call the controller contructor
+	private _lastPoppedFrame: StackFrame;
+
 	private _classPaths = new Map<string, string>();
 
 	// maps from sourceFile to array of Breakpoints
@@ -144,12 +147,6 @@ class ApexDebugSession extends DebugSession {
 		}
 	}
 
-	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		// stop sending custom events
-		clearInterval(this._timer);
-		super.disconnectRequest(response, args);
-	}
-
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
 		var path = args.source.path;
@@ -202,29 +199,8 @@ class ApexDebugSession extends DebugSession {
 	 * Returns a StackTrace
 	 */
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-
-		let nextLinePointer = this._logPointer;
-
-		//load initial frame (move to init)
-		while(this._frames.length == 0){
-			if(nextLinePointer > this._logLines.length-1){
-				break;
-			}
-			let nextLine = new LogLine(this._logLines[nextLinePointer]);
-
-			if(nextLine._action == 'execute_anonymous_apex' && this._frames.length == 0){
-				let name = 'Execute Anonymous';
-				this._frames.push(
-					new StackFrame(
-						nextLinePointer,
-						`${name}(${nextLinePointer})`,
-						new Source(basename(this._logFile),
-						this.convertDebuggerPathToClient(this._logFile)),
-						this.convertDebuggerLineToClient(nextLinePointer),
-						0)
-				);
-			}
-			nextLinePointer ++;
+		if(this._frames.length == 0){
+			this.setNextFrame();
 		}
 
 		//Excepts stack in reverse...
@@ -355,6 +331,12 @@ class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 	}
 
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+		// stop sending custom events
+		clearInterval(this._timer);
+		super.disconnectRequest(response, args);
+	}
+
 	//[TODO]
 	// protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {}
 
@@ -401,7 +383,7 @@ class ApexDebugSession extends DebugSession {
 					return;
 				case 'METHOD_EXIT':
 				case 'CONSTRUCTOR_EXIT':
-					this._frames.pop();
+					this._lastPoppedFrame = this._frames.pop();
 					return;
 				case 'STATEMENT_EXECUTE':
 					let currentFrame = this.getCurrentFrame();
@@ -417,8 +399,15 @@ class ApexDebugSession extends DebugSession {
 								value: null,
 								variablesReference: 0
 							};
-					//move to function! DRY
-					this.setFrameVariable(this.getCurrentFrame().id, variableInit);
+
+					//frame has apperently been pre-maturely popped! Re-add
+					if(!this._frames.length && this._lastPoppedFrame){
+						this._frames.push(this._lastPoppedFrame);
+					}
+					if(this._frames.length){
+						this.setFrameVariable(this.getCurrentFrame().id, variableInit);
+					}
+
 					break;
 				case 'VARIABLE_ASSIGNMENT': //assign frame variable values
 					let variable = {
@@ -432,6 +421,21 @@ class ApexDebugSession extends DebugSession {
 				case 'USER_DEBUG':
 					let debug = line._parts[4];
 					this.sendEvent(new OutputEvent(`Debug: ${debug}\n`));
+					break;
+				case 'execute_anonymous_apex':
+					if(this._frames.length == 0){
+						let name = 'Execute Anonymous';
+						this._frames.push(
+							new StackFrame(
+								this._logPointer,
+								`${name}(${this._logPointer})`,
+								new Source(basename(this._logFile),
+								this.convertDebuggerPathToClient(this._logFile)),
+								this.convertDebuggerLineToClient(this._logPointer),
+								0)
+						);
+						return;
+					}
 					break;
 			}
 		}
