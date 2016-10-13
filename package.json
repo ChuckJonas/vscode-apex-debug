@@ -12,14 +12,14 @@
 		"vscode": "^1.1.0",
 		"node": "^5.10.0"
 	},
-	"icon": "",
+	"icon": "/images/apex-debug-icon.png",
 	"categories": [
 		"Debuggers"
 	],
 	"private": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/chuckjonas/vscode-apex-debug.git"
+		"url": "https://github.com/ChuckJonas/vscode-apex-debug.git"
 	},
 	"bugs": {
 		"url": "https://github.com/chuckjonas/vscode-apex-debug/issues"
