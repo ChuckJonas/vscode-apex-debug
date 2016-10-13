@@ -208,6 +208,8 @@ class ApexDebugSession extends DebugSession {
 			stackFrames: this._frames.slice(0).reverse(),
 			totalFrames: this._frames.length
 		};
+		console.log('Frame Count: ' + response.body.totalFrames);
+		console.log(response.body.stackFrames);
 		this.sendResponse(response);
 	}
 
@@ -344,7 +346,9 @@ class ApexDebugSession extends DebugSession {
 
 	private setNextFrame(){
 		for (this._logPointer++; this._logPointer < this._logLines.length; this._logPointer++) {
+
 			let line = new LogLine(this._logLines[this._logPointer]);
+			console.log('LN:' + (this._logPointer + 1) + ' | ' + this._logLines[this._logPointer]);
 			if(line._action == null) continue;
 			let assignmentLine;
 			let classPath;
@@ -356,8 +360,8 @@ class ApexDebugSession extends DebugSession {
 					//really we want to find the next exit and start there since this is step over
 					this._frames.push(
 						new StackFrame(
-							this._logPointer++,
-							`${line._parts[4]}(${this._logPointer++})`,
+							this._logPointer+1,
+							`${line._parts[4]}(${this._logPointer+1})`,
 							new Source(basename(classPath),
 							this.convertDebuggerPathToClient(classPath)),
 							assignmentLine._lineNumber,
@@ -372,8 +376,8 @@ class ApexDebugSession extends DebugSession {
 					//really we want to find the next exit and start there since this is step over
 					this._frames.push(
 						new StackFrame(
-							this._logPointer++,
-							`${line._parts[4]}(${this._logPointer++})`,
+							this._logPointer+1,
+							`${line._parts[4]}(${this._logPointer+1})`,
 							new Source(basename(classPath),
 							this.convertDebuggerPathToClient(classPath)),
 							assignmentLine._lineNumber,
@@ -416,6 +420,10 @@ class ApexDebugSession extends DebugSession {
 									value: line._parts[4],
 									variablesReference: 0
 								};
+
+					if(!this._frames.length && this._lastPoppedFrame){
+						this._frames.push(this._lastPoppedFrame);
+					}
 					this.setFrameVariable(this.getCurrentFrame().id, variable);
 					break;
 				case 'USER_DEBUG':
