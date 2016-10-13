@@ -7,7 +7,7 @@
 import * as vscode from 'vscode';
 
 const initialConfigurations = {
-	version: '0.0.1',
+	version: '0.2.0',
 	configurations: [
 	{
 		name: 'Apex-Debug',
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand('extension.getProgramName', () => {
 		return vscode.window.showInputBox({
 			placeHolder: "Please enter the name of a text file in the workspace folder",
-			value: "*.log"
+			value: "debug.log"
 		});
 	});
 	context.subscriptions.push(disposable);
