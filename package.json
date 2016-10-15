@@ -53,7 +53,7 @@
     "contributes": {
         "breakpoints": [
             {
-                "language": "Apex"
+                "language": "apex"
             }
         ],
         "debuggers": [

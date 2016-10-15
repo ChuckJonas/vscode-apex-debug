@@ -9,6 +9,7 @@ but it is not connected to any real debugger.
 ## Getting Started
 
 ### Configuring Apex Debug
+
 * Install **Mavensmate** Extension (required dependency)
 * Install the **Apex Debug** extension in VS Code.
 * Create/Open a Mavensmate project
@@ -18,6 +19,7 @@ but it is not connected to any real debugger.
 * You can replace `${command.AskForProgramName}` with a hardcoded filename, but it the debug log must remain at the root of the workspace (for now)
 
 ### Running Debugger
+
 * Set `apex` log level to `Finest` in `/config/.debug`
 * run `Mavensmate: Start logging` from command pallet
 * Run Anyonmous Apex (currenly only execution type supported)
@@ -26,6 +28,7 @@ but it is not connected to any real debugger.
 * Press the green 'play' button to start debugging.
 
 ## [TODO]
+
 * Better exception handling
 * Add support for other execution types (visualforce, batch, etc)
 * Improve Configuration and Launch process
@@ -36,9 +39,11 @@ but it is not connected to any real debugger.
 * Hook up to CI process
 
 ## Contributing
+
 ***Please Do!***
 
 ### Debugging the Debugger
+
 * Fork
 * Clone
 * Open in VS code
@@ -51,6 +56,7 @@ but it is not connected to any real debugger.
 * Your `vs-apex-debugger` project should stop on breakpoint
 
 ### Developer Resources
+
 * VS Code Gitter: [![Gitter Chat](http://img.shields.io/badge/chat-online-brightgreen.svg)](https://gitter.im/Microsoft/vscode)
 * [Debug Adapter tutorial](https://code.visualstudio.com/docs/extensions/example-debuggers)
 * [Mock Debug Sample](https://github.com/Microsoft/vscode-mock-debug.git) (used as scaffolding for this project)

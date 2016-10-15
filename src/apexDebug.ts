@@ -1,5 +1,6 @@
 /// <reference types="es6-collections" />
 /// <reference types="node" />
+/// <reference path="lib/logLine.ts" />
 
 import {
 	DebugSession,
@@ -11,6 +12,8 @@ import {readFileSync} from 'fs';
 import {basename} from 'path';
 
 
+
+
 /**
  * This interface should always match the schema found in the apex-debug extension manifest.
  */
@@ -19,25 +22,6 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	program: string;
 	/** Automatically stop target after launch. If not specified, target does not stop. */
 	stopOnEntry?: boolean;
-}
-
-/* Helper class to Process Log Lines
- * [TODO:] -move to own class -add constants
- */
-class LogLine{
-	public _action: string;
-	public _lineNumber: number;
-	public _parts: Array<string>;
-
-	public constructor(line : string) {
-		this._parts = line.split('|');
-		if(this._parts.length >= 3){
-			this._action = this._parts[1];
-			this._lineNumber = parseInt(this._parts[2].replace('[','').replace(']',''));
-		}else if(line.indexOf('Execute Anonymous:') != -1){
-			this._action = 'execute_anonymous_apex';
-		}
-	}
 }
 
 class ApexDebugSession extends DebugSession {
@@ -342,7 +326,7 @@ class ApexDebugSession extends DebugSession {
 	//[TODO]
 	// protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {}
 
-	/* Private Methods */
+	/* === Private Methods === */
 
 	private setNextFrame(){
 		for (this._logPointer++; this._logPointer < this._logLines.length; this._logPointer++) {
