@@ -7,7 +7,8 @@ const initialConfigurations =
 		name: 'Apex-Debug',
 		type: 'apex',
 		request: 'launch',
-		program: '${workspaceRoot}/${command.AskForProgramName}',
+		logFile: '${workspaceRoot}/${command.AskForProgramName}',
+		workspaceRoot: '${workspaceRoot}',
 		stopOnEntry: true
 	}];
 

@@ -68,13 +68,19 @@
                 "configurationAttributes": {
                     "launch": {
                         "required": [
-                            "program"
+                            "logFile",
+                            "workspaceRoot"
                         ],
                         "properties": {
-                            "program": {
+                            "logFile": {
                                 "type": "string",
                                 "description": "path to a log file",
                                 "default": "${workspaceRoot}/${command.AskForProgramName}"
+                            },
+                            "workspaceRoot": {
+                                "type": "string",
+                                "description": "The root of your MavensMate Project",
+                                "default": "${workspaceRoot}"
                             },
                             "stopOnEntry": {
                                 "type": "boolean",

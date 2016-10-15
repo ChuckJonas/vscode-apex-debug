@@ -2,25 +2,23 @@
 /// <reference types="node" />
 
 import {
-	DebugSession,
-	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent, Event,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	DebugSession, InitializedEvent,
+	TerminatedEvent, StoppedEvent, BreakpointEvent,
+	OutputEvent, Event, Thread, Scope, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {readFileSync} from 'fs';
-import {basename} from 'path';
-import {LogLine, FrameProcessor} from './lib/frameProcessor';
-
-
-
+import {FrameProcessor} from './lib/frameProcessor';
 
 /**
  * This interface should always match the schema found in the apex-debug extension manifest.
  */
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	/** An absolute path to the program to debug. */
-	program: string;
-	/** Automatically stop target after launch. If not specified, target does not stop. */
+	// The root path
+	workspaceRoot:string;
+	// An absolute path to the program to debug.
+	logFile: string;
+	// Automatically stop target after launch. If not specified, target does not stop.
 	stopOnEntry?: boolean;
 }
 
@@ -33,11 +31,7 @@ export class ApexDebugSession extends DebugSession {
 	// so that the frontend can match events with breakpoints.
 	private _breakpointId = 1000;
 
-	// the log file
 	private _logFile: string;
-
-	// Anoymonous execution lines
-	private _anonymousLines = new Array<string>();
 
 	private _classPaths = new Map<string, string>();
 
@@ -63,6 +57,18 @@ export class ApexDebugSession extends DebugSession {
 		this.setDebuggerLinesStartAt1(false);
 		this.setDebuggerColumnsStartAt1(false);
 	}
+
+	/* === Public Methods === */
+
+	public log(message : string){
+		this.sendEvent(new OutputEvent(message));
+	}
+
+	public convertPathToClient(p: string){
+		return this.convertDebuggerPathToClient(p);
+	}
+
+	/* === Implemented Methods === */
 
 	/**
 	 * The 'initialize' request is the first request called by the frontend
@@ -116,10 +122,6 @@ export class ApexDebugSession extends DebugSession {
 			let s = logLines[i];
 			if(s.indexOf('*** Skipped') == 0){
 				throw new TypeError('Log Was truncated due to length... Try reducing log levels');
-			}
-			let line = new LogLine(s);
-			if(line._action == 'execute_anonymous_apex'){
-				this._anonymousLines.push(logLines[i]);
 			}
 		}
 
@@ -260,7 +262,6 @@ export class ApexDebugSession extends DebugSession {
 	}
 
 	//step out: run until stack size reduces
-	//[TODO] check breakpoints
     protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void{
 		let currentDepth = this._frameProcessor.getFrames().length;
 		while(this._frameProcessor.hasLines()){
@@ -280,7 +281,6 @@ export class ApexDebugSession extends DebugSession {
 	}
 
 	//step over: run until stack size is same as current
-	//[TODO] check breakpoints
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 
 		let currentDepth = this._frameProcessor.getFrames().length;
@@ -321,19 +321,7 @@ export class ApexDebugSession extends DebugSession {
 		super.disconnectRequest(response, args);
 	}
 
-	//[TODO]
-	// protected stepBackRequest(response: DebugProtocol.StepBackResponse, args: DebugProtocol.StepBackArguments): void {}
-
 	/* === Private Methods === */
-
-
-	public log(message : string){
-		this.sendEvent(new OutputEvent(message));
-	}
-
-	public convertPathToClient(p: string){
-		return this.convertDebuggerPathToClient(p);
-	}
 
 	private checkBreakpoints(): boolean{
 		let currentFrame = this._frameProcessor.getCurrentFrame();
