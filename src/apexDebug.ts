@@ -1,6 +1,5 @@
 /// <reference types="es6-collections" />
 /// <reference types="node" />
-/// <reference path="lib/logLine.ts" />
 
 import {
 	DebugSession,
@@ -10,6 +9,7 @@ import {
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {readFileSync} from 'fs';
 import {basename} from 'path';
+import {LogLine, FrameProcessor} from './lib/frameProcessor';
 
 
 
@@ -24,7 +24,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	stopOnEntry?: boolean;
 }
 
-class ApexDebugSession extends DebugSession {
+export class ApexDebugSession extends DebugSession {
 
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
@@ -36,20 +36,8 @@ class ApexDebugSession extends DebugSession {
 	// the log file
 	private _logFile: string;
 
-	private _logPointer = 0;
-
-	// the contents (= lines) of the one and only file
-	private _logLines = new Array<string>();
-
 	// Anoymonous execution lines
 	private _anonymousLines = new Array<string>();
-
-	private _frames = new Array<StackFrame>();
-
-	private _frameVariables = new Map<number, Map<string,DebugProtocol.Variable>>();
-
-	//used as workaround for VF where it doesn't call the controller contructor
-	private _lastPoppedFrame: StackFrame;
 
 	private _classPaths = new Map<string, string>();
 
@@ -62,6 +50,7 @@ class ApexDebugSession extends DebugSession {
 
 	private _timer;
 
+	private _frameProcessor : FrameProcessor;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -98,6 +87,8 @@ class ApexDebugSession extends DebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
 		this._logFile = args.program;
+		//add file for apex
+		this._classPaths.set('_logFile', this._logFile);
 
 		//create class paths map
 		this._projectRoot = this._logFile.substring(0,this._logFile.lastIndexOf("/")+1);
@@ -106,19 +97,33 @@ class ApexDebugSession extends DebugSession {
 			if (localStore.hasOwnProperty(property)) {
 				var metadata = localStore[property];
 				if(metadata.type == 'ApexClass' || metadata.type == 'ApexTrigger'){
-					this._classPaths.set(metadata.id.substring(0, metadata.id.length - 3) , metadata.fileName.replace('unpackaged','src'));
+					let fileName = this._projectRoot + metadata.fileName.replace('unpackaged','src');
+					//add both id and classname for lookup
+					this._classPaths.set(metadata.id.substring(0, metadata.id.length - 3) , fileName);
+					this._classPaths.set(metadata.fullName , fileName);
 				}
 			}
 		}
 
+		let logLines = new Array<string>();
+
 		//load anyon lines seperately
-		this._logLines = readFileSync(this._logFile).toString().split('\n');
-		for(let i = 0; i < this._logLines.length; i++){
-			let line = new LogLine(this._logLines[i]);
+		logLines = readFileSync(this._logFile).toString().split('\n');
+		if(logLines[0].indexOf('APEX_CODE,FINEST')==-1 || logLines[0].indexOf('SYSTEM,FINE')==-1){
+			throw new TypeError('Log does not have proper levels. Set Debug levels to `APEX_CODE=FINEST` && `SYSTEM=FINE`');
+		}
+		for(let i = 0; i < logLines.length; i++){
+			let s = logLines[i];
+			if(s.indexOf('*** Skipped') == 0){
+				throw new TypeError('Log Was truncated due to length... Try reducing log levels');
+			}
+			let line = new LogLine(s);
 			if(line._action == 'execute_anonymous_apex'){
-				this._anonymousLines.push(this._logLines[i]);
+				this._anonymousLines.push(logLines[i]);
 			}
 		}
+
+		this._frameProcessor = new FrameProcessor(this, logLines, this._classPaths);
 
 		if (args.stopOnEntry) {
 			this.sendResponse(response);
@@ -183,17 +188,17 @@ class ApexDebugSession extends DebugSession {
 	 * Returns a StackTrace
 	 */
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-		if(this._frames.length == 0){
-			this.setNextFrame();
+		if(this._frameProcessor.getFrames().length == 0){
+			this._frameProcessor.setNextFrame();
 		}
 
 		//Excepts stack in reverse...
 		response.body = {
-			stackFrames: this._frames.slice(0).reverse(),
-			totalFrames: this._frames.length
+			stackFrames: this._frameProcessor.getFrames().slice(0).reverse(),
+			totalFrames: this._frameProcessor.getFrames().length
 		};
 		console.log('Frame Count: ' + response.body.totalFrames);
-		console.log(response.body.stackFrames);
+		// console.log(response.body.stackFrames);
 		this.sendResponse(response);
 	}
 
@@ -211,7 +216,7 @@ class ApexDebugSession extends DebugSession {
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
 		const id = this._variableHandles.get(args.variablesReference);
-		let frameMap = this._frameVariables.get(parseInt(id));
+		let frameMap = this._frameProcessor.getFrameVariables(id);
 
 		let variables = [];
 		if(frameMap){
@@ -229,20 +234,10 @@ class ApexDebugSession extends DebugSession {
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 
 		//advance the log without sending, each time a frame is updated, check if it has a breakpoint
-		while(this._logPointer < this._logLines.length-1){
-			this.setNextFrame();
-			let currentFrame = this.getCurrentFrame();
-
-			//find breakpoints that match frame file
-			var breakpoints = this._breakPoints.get(currentFrame.source.path);
-			if(breakpoints){
-				for(let i = 0; i < breakpoints.length; i++){
-					let breakpoint = breakpoints[i];
-					if(currentFrame.line == breakpoint.line){
-						this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
-						return;
-					}
-				}
+		while(this._frameProcessor.hasLines()){
+			this._frameProcessor.setNextFrame();
+			if(this.checkBreakpoints()){
+				return;
 			}
 		}
 
@@ -253,8 +248,8 @@ class ApexDebugSession extends DebugSession {
 
 	//step into: get next frame update
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void{
-		this.setNextFrame();
-		if(this._logPointer < this._logLines.length-1){
+		this._frameProcessor.setNextFrame();
+		if(this._frameProcessor.hasLines()){
 			this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 			return;
 		}
@@ -267,10 +262,13 @@ class ApexDebugSession extends DebugSession {
 	//step out: run until stack size reduces
 	//[TODO] check breakpoints
     protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void{
-		let currentDepth = this._frames.length;
-		while(this._logPointer < this._logLines.length){
-			this.setNextFrame();
-			if(this._frames.length < currentDepth){
+		let currentDepth = this._frameProcessor.getFrames().length;
+		while(this._frameProcessor.hasLines()){
+			this._frameProcessor.setNextFrame();
+			if(this.checkBreakpoints()){
+				return;
+			}
+			if(this._frameProcessor.getFrames().length < currentDepth){
 				this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 				return;
 			}
@@ -285,16 +283,16 @@ class ApexDebugSession extends DebugSession {
 	//[TODO] check breakpoints
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 
-		let currentDepth = this._frames.length;
+		let currentDepth = this._frameProcessor.getFrames().length;
 		let newFrames = false
-		while(this._logPointer < this._logLines.length){
-			this.setNextFrame();
-			if(this._frames.length > currentDepth){ //added frames
+		while(this._frameProcessor.hasLines()){
+			this._frameProcessor.setNextFrame();
+			if(this.checkBreakpoints()){
+				return;
+			}
+			if(this._frameProcessor.getFrames().length > currentDepth){ //added frames
 				newFrames = true;
-			}else if(this._frames.length == currentDepth){
-				if(newFrames){ //set one more so we go past the starting frame
-					this.setNextFrame();
-				}
+			}else if(this._frameProcessor.getFrames().length == currentDepth){
 				this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 				return;
 			}else{
@@ -328,142 +326,31 @@ class ApexDebugSession extends DebugSession {
 
 	/* === Private Methods === */
 
-	private setNextFrame(){
-		for (this._logPointer++; this._logPointer < this._logLines.length; this._logPointer++) {
 
-			let line = new LogLine(this._logLines[this._logPointer]);
-			console.log('LN:' + (this._logPointer + 1) + ' | ' + this._logLines[this._logPointer]);
-			if(line._action == null) continue;
-			let assignmentLine;
-			let classPath;
-			switch(line._action){
-				case 'CONSTRUCTOR_ENTRY':
-					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
+	public log(message : string){
+		this.sendEvent(new OutputEvent(message));
+	}
 
-					classPath = this.getFileFromId(line._parts[3]);
-					//really we want to find the next exit and start there since this is step over
-					this._frames.push(
-						new StackFrame(
-							this._logPointer+1,
-							`${line._parts[4]}(${this._logPointer+1})`,
-							new Source(basename(classPath),
-							this.convertDebuggerPathToClient(classPath)),
-							assignmentLine._lineNumber,
-							0
-						)
-					);
-					return;
-				case 'METHOD_ENTRY':
-					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
+	public convertPathToClient(p: string){
+		return this.convertDebuggerPathToClient(p);
+	}
 
-					classPath = this.getFileFromId(line._parts[3]);
-					//really we want to find the next exit and start there since this is step over
-					this._frames.push(
-						new StackFrame(
-							this._logPointer+1,
-							`${line._parts[4]}(${this._logPointer+1})`,
-							new Source(basename(classPath),
-							this.convertDebuggerPathToClient(classPath)),
-							assignmentLine._lineNumber,
-							0
-						)
-					);
-					return;
-				case 'METHOD_EXIT':
-				case 'CONSTRUCTOR_EXIT':
-					this._lastPoppedFrame = this._frames.pop();
-					return;
-				case 'STATEMENT_EXECUTE':
-					let currentFrame = this.getCurrentFrame();
-					if(currentFrame.line != line._lineNumber){
-						currentFrame.line = line._lineNumber;
-						return;
-					}
-					break;
-				case 'VARIABLE_SCOPE_BEGIN': //init frame variable types
-					let variableInit = {
-								name: line._parts[3],
-								type: line._parts[4],
-								value: null,
-								variablesReference: 0
-							};
+	private checkBreakpoints(): boolean{
+		let currentFrame = this._frameProcessor.getCurrentFrame();
 
-					//frame has apperently been pre-maturely popped! Re-add
-					if(!this._frames.length && this._lastPoppedFrame){
-						this._frames.push(this._lastPoppedFrame);
-					}
-					if(this._frames.length){
-						this.setFrameVariable(this.getCurrentFrame().id, variableInit);
-					}
-
-					break;
-				case 'VARIABLE_ASSIGNMENT': //assign frame variable values
-					let variable = {
-									name: line._parts[3],
-									type: null,
-									value: line._parts[4],
-									variablesReference: 0
-								};
-
-					if(!this._frames.length && this._lastPoppedFrame){
-						this._frames.push(this._lastPoppedFrame);
-					}
-					this.setFrameVariable(this.getCurrentFrame().id, variable);
-					break;
-				case 'USER_DEBUG':
-					let debug = line._parts[4];
-					this.sendEvent(new OutputEvent(`Debug: ${debug}\n`));
-					break;
-				case 'execute_anonymous_apex':
-					if(this._frames.length == 0){
-						let name = 'Execute Anonymous';
-						this._frames.push(
-							new StackFrame(
-								this._logPointer,
-								`${name}(${this._logPointer})`,
-								new Source(basename(this._logFile),
-								this.convertDebuggerPathToClient(this._logFile)),
-								this.convertDebuggerLineToClient(this._logPointer),
-								0)
-						);
-						return;
-					}
-					break;
+		//find breakpoints that match frame file
+		var breakpoints = this._breakPoints.get(currentFrame.source.path);
+		if(breakpoints){
+			for(let i = 0; i < breakpoints.length; i++){
+				let breakpoint = breakpoints[i];
+				if(currentFrame.line == breakpoint.line){
+					this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
+					return true;
+				}
 			}
 		}
 	}
 
-	private setFrameVariable(frameId : number, variable : DebugProtocol.Variable){
-		let frameMap;
-		if(this._frameVariables.has(frameId)){
-			frameMap = this._frameVariables.get(frameId);
-			if(frameMap.has(variable.name)){
-				if(variable.value){
-					frameMap.get(variable.name).value = variable.value;
-				}
-				if(variable.type){
-					frameMap.get(variable.name).type = variable.type;
-				}
-			}else{
-				frameMap.set(variable.name, variable);
-			}
-		}else{
-			frameMap = new Map<string,DebugProtocol.Variable>();
-			frameMap.set(variable.name, variable);
-			this._frameVariables.set(frameId, frameMap);
-		}
-	}
-
-	private getCurrentFrame(): DebugProtocol.StackFrame{
-		if(this._frames.length){
-			return this._frames[this._frames.length-1];
-		}
-		return null;
-	}
-
-	private getFileFromId(id :string): string{
-		return this._projectRoot + this._classPaths.get(id);
-	}
 }
 
 DebugSession.run(ApexDebugSession);
