@@ -92,12 +92,13 @@ export class ApexDebugSession extends DebugSession {
 
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
-		this._logFile = args.program;
+		this._logFile     = args.logFile;
+		this._projectRoot = args.workspaceRoot + '/'
+
 		//add file for apex
 		this._classPaths.set('_logFile', this._logFile);
 
 		//create class paths map
-		this._projectRoot = this._logFile.substring(0,this._logFile.lastIndexOf("/")+1);
 		let localStore =  JSON.parse(readFileSync(this._projectRoot + 'config/.local_store').toString());
 		for (var property in localStore) {
 			if (localStore.hasOwnProperty(property)) {

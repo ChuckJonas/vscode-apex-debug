@@ -34,20 +34,20 @@ export class FrameProcessor{
 			console.log('LN:' + (this._logPointer+1) + ' | ' + this._logLines[this._logPointer]);
 			this._logPointer++
 			if(line._action == null) continue;
+
 			let assignmentLine;
-			let classPath;
+			let classSource;
 			switch(line._action){
 				case 'CONSTRUCTOR_ENTRY':
 					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
 
-					classPath = this.getFileFromId(line._parts[3]);
+					classSource = this.getSourceFromId(line._parts[3]);
 					//really we want to find the next exit and start there since this is step over
 					this._frames.push(
 						new ApexFrame(
 							this._logPointer+1,
 							`${line._parts[4]}(${this._logPointer+1})`,
-							new Source(basename(classPath),
-							this._debugSession.convertPathToClient(classPath)),
+							classSource,
 							assignmentLine._lineNumber,
 							0
 						)
@@ -56,29 +56,26 @@ export class FrameProcessor{
 				case 'METHOD_ENTRY':
 					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
 
-					classPath = this.getFileFromId(line._parts[3]);
+					classSource = this.getSourceFromId(line._parts[3]);
 					//really we want to find the next exit and start there since this is step over
 					this._frames.push(
 						new ApexFrame(
 							this._logPointer+1,
 							`${line._parts[4]}(${this._logPointer+1})`,
-							new Source(basename(classPath),
-							this._debugSession.convertPathToClient(classPath)),
+							classSource,
 							assignmentLine._lineNumber,
 							0
 						)
 					);
 					break;
 				case 'SYSTEM_METHOD_ENTRY':
-
-					classPath = this.getFileFromSigniture(line._parts[3]);
+					classSource = this.getSourceFromSigniture(line._parts[3]);
 					//really we want to find the next exit and start there since this is step over
 					this._frames.push(
 						new ApexFrame(
 							this._logPointer+1,
 							`${line._parts[3]}(${this._logPointer+1})`,
-							new Source(basename(classPath),
-							this._debugSession.convertPathToClient(classPath)),
+							classSource,
 							line._lineNumber,
 							0
 						)
@@ -134,13 +131,12 @@ export class FrameProcessor{
 				case 'execute_anonymous_apex':
 					if(this._frames.length == 0){
 						let name = 'Execute Anonymous';
-						let logFile = this.getFileFromId('_logFile');
+						classSource = this.getSourceFromId('_logFile');
 						this._frames.push(
 							new ApexFrame(
 								this._logPointer,
 								`${name}(${this._logPointer})`,
-								new Source(basename(logFile),
-								this._debugSession.convertPathToClient(logFile)),
+								classSource,
 								this._logPointer,
 								0)
 						);
@@ -163,6 +159,7 @@ export class FrameProcessor{
 		if(this._frames.length){
 			return this._frames[this._frames.length-1];
 		}
+
 		return null;
 	}
 
@@ -170,15 +167,19 @@ export class FrameProcessor{
 		return this._frameVariables.get(parseInt(frameId));
 	}
 
-	private getFileFromId(id :string): string{
-		return this._classPaths.get(id);
+	private getSourceFromId(id :string): Source{
+		let filePath;
+		if(this._classPaths.has(id)){
+			filePath = this._classPaths.get(id);
+		}else{
+			filePath = '';
+		}
+		return new Source(basename(filePath), this._debugSession.convertPathToClient(filePath));
 	}
 
-	private getFileFromSigniture(sig :string): string{
+	private getSourceFromSigniture(sig :string): Source{
 		let parts = sig.split('.');
-		if(parts && this._classPaths.get(parts[0])){
-			return this._classPaths.get(parts[0]);
-		}
+		return this.getSourceFromId(parts[0]);
 	}
 
 	private setFrameVariable(frameId : number, variable : DebugProtocol.Variable){
