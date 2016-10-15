@@ -1,7 +1,7 @@
 {
     "name": "apex-debug",
     "displayName": "Salesforce Apex Debug",
-    "version": "0.5.8",
+    "version": "0.5.11",
     "publisher": "chuckjonas",
     "description": "Open Source extension for Salesforce debugging",
     "author": {
@@ -47,7 +47,7 @@
     },
     "main": "./out/extension",
     "activationEvents": [
-        "onCommand:extension.apex.getProgramName",
+        "onCommand:extension.apex.getLogName",
         "onCommand:extension.apex.provideInitialConfigurations"
     ],
     "contributes": {
@@ -63,7 +63,7 @@
                 "program": "./out/apexDebug.js",
                 "runtime": "node",
                 "variables": {
-                    "AskForProgramName": "extension.apex.getProgramName"
+                    "AskForLogName": "extension.apex.getLogName"
                 },
                 "configurationAttributes": {
                     "launch": {
@@ -75,7 +75,7 @@
                             "logFile": {
                                 "type": "string",
                                 "description": "path to a log file",
-                                "default": "${workspaceRoot}/${command.AskForProgramName}"
+                                "default": "${workspaceRoot}/${command.AskForLogName}"
                             },
                             "workspaceRoot": {
                                 "type": "string",
