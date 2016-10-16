@@ -1,236 +1,79 @@
-import {StackFrame, Source}
+import {StackFrame, Source, Handles}
 from 'vscode-debugadapter';
 
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {basename} from 'path';
 
 import {ApexDebugSession} from '../apexDebug';
+import {LogInstructionFactory} from './instructionFactory';
+import {ProgramState, ApexFrame} from './programState';
 
 export class FrameProcessor{
-	private _logPointer = 0;
 
-	private _frames = new Array<ApexFrame>();
+	//refactored
+	private _logInstructionFactory : LogInstructionFactory;
+	private _state : ProgramState;
 
-	private _frameVariables = new Map<number, Map<string,DebugProtocol.Variable>>();
+	public constructor(debugSession : ApexDebugSession, logLines : Array<string>,
+		classPaths : Map<string, string>, variableHandles : Handles<string>) {
 
-	//used as workaround for VF where it doesn't call the controller contructor
-	private _lastPoppedFrame: ApexFrame;
+		this._logInstructionFactory = new LogInstructionFactory();
 
+		this._state = new ProgramState(debugSession, logLines, classPaths, variableHandles);
 
-	private _classPaths = new Map<string, string>();
-	private _debugSession : ApexDebugSession;
-	private _logLines = new Array<string>();
-
-	public constructor(debugSession : ApexDebugSession, logLines : Array<string>, classPaths : Map<string, string>) {
-		this._debugSession = debugSession;
-		this._logLines = logLines;
-		this._classPaths = classPaths;
 	}
 
 	public setNextFrame(){
-		while (this._logPointer < this._logLines.length) {
+		while (this.hasLines()) {
 
-			let line = new LogLine(this._logLines[this._logPointer]);
-			console.log('LN:' + (this._logPointer+1) + ' | ' + this._logLines[this._logPointer]);
-			this._logPointer++
-			if(line._action == null) continue;
+			let line = this._state._logLines[this._state._logPointer];
+			console.log('LN:' + (this._state._logPointer+1) + ' | ' + line);
+			this._state._logPointer++;
 
-			let assignmentLine;
-			let classSource;
-			switch(line._action){
-				case 'CONSTRUCTOR_ENTRY':
-					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
-
-					classSource = this.getSourceFromId(line._parts[3]);
-					//really we want to find the next exit and start there since this is step over
-					this._frames.push(
-						new ApexFrame(
-							this._logPointer+1,
-							`${line._parts[4]}(${this._logPointer+1})`,
-							classSource,
-							assignmentLine._lineNumber,
-							0
-						)
-					);
-					break;
-				case 'METHOD_ENTRY':
-					assignmentLine = new LogLine(this._logLines[this._logPointer+1]);
-
-					classSource = this.getSourceFromId(line._parts[3]);
-					//really we want to find the next exit and start there since this is step over
-					this._frames.push(
-						new ApexFrame(
-							this._logPointer+1,
-							`${line._parts[4]}(${this._logPointer+1})`,
-							classSource,
-							assignmentLine._lineNumber,
-							0
-						)
-					);
-					break;
-				case 'SYSTEM_METHOD_ENTRY':
-					classSource = this.getSourceFromSigniture(line._parts[3]);
-					//really we want to find the next exit and start there since this is step over
-					this._frames.push(
-						new ApexFrame(
-							this._logPointer+1,
-							`${line._parts[3]}(${this._logPointer+1})`,
-							classSource,
-							line._lineNumber,
-							0
-						)
-					);
-					break;
-				case 'SYSTEM_METHOD_EXIT':
-				case 'METHOD_EXIT':
-				case 'CONSTRUCTOR_EXIT':
-					this._lastPoppedFrame = this._frames.pop();
-					// return;
-					break;
-				case 'STATEMENT_EXECUTE':
-					let currentFrame = this.getCurrentFrame();
-					if(currentFrame.line != line._lineNumber){
-						currentFrame.line = line._lineNumber;
-						return;
-					}
-					break;
-				case 'VARIABLE_SCOPE_BEGIN': //init frame variable types
-					let variableInit = {
-								name: line._parts[3],
-								type: line._parts[4],
-								value: null,
-								variablesReference: 0
-							};
-
-					//frame has apperently been pre-maturely popped! Re-add
-					if(!this._frames.length && this._lastPoppedFrame){
-						this._frames.push(this._lastPoppedFrame);
-					}
-					if(this._frames.length){
-						this.setFrameVariable(this.getCurrentFrame().id, variableInit);
-					}
-
-					break;
-				case 'VARIABLE_ASSIGNMENT': //assign frame variable values
-					let variable = {
-									name: line._parts[3],
-									type: null,
-									value: line._parts[4],
-									variablesReference: 0
-								};
-
-					if(!this._frames.length && this._lastPoppedFrame){
-						this._frames.push(this._lastPoppedFrame);
-					}
-					this.setFrameVariable(this.getCurrentFrame().id, variable);
-					break;
-				case 'USER_DEBUG':
-					let debug = line._parts[4];
-					this._debugSession.log(`Debug: ${debug}\n`);
-					break;
-				case 'execute_anonymous_apex':
-					if(this._frames.length == 0){
-						let name = 'Execute Anonymous';
-						classSource = this.getSourceFromId('_logFile');
-						this._frames.push(
-							new ApexFrame(
-								this._logPointer,
-								`${name}(${this._logPointer})`,
-								classSource,
-								this._logPointer,
-								0)
-						);
-						return;
-					}
-					break;
+			let instruction = this._logInstructionFactory.getInstruction(line);
+			if(instruction && instruction.execute(this._state)){
+				break;
 			}
 		}
 	}
 
 	public hasLines(): boolean{
-		return this._logPointer < this._logLines.length-1;
+		return this._state._logPointer < this._state._logLines.length-1;
 	}
 
 	public getFrames(): Array<ApexFrame>{
-		return this._frames;
+		return this._state._frames;
 	}
 
 	public getCurrentFrame(): ApexFrame{
-		if(this._frames.length){
-			return this._frames[this._frames.length-1];
-		}
-
-		return null;
+		return this._state.getCurrentFrame();
 	}
 
-	public getFrameVariables(frameId : string): Map<string,DebugProtocol.Variable>{
-		return this._frameVariables.get(parseInt(frameId));
-	}
-
-	private getSourceFromId(id :string): Source{
-		let filePath;
-		if(this._classPaths.has(id)){
-			filePath = this._classPaths.get(id);
-		}else{
-			filePath = '';
-		}
-		return new Source(basename(filePath), this._debugSession.convertPathToClient(filePath));
-	}
-
-	private getSourceFromSigniture(sig :string): Source{
-		let parts = sig.split('.');
-		return this.getSourceFromId(parts[0]);
-	}
-
-	private setFrameVariable(frameId : number, variable : DebugProtocol.Variable){
-		let frameMap;
-		if(this._frameVariables.has(frameId)){
-			frameMap = this._frameVariables.get(frameId);
-			if(frameMap.has(variable.name)){
-				if(variable.value){
-					frameMap.get(variable.name).value = variable.value;
+	public getFrameVariables(frameId : string): Array<DebugProtocol.Variable>{
+		let frameMap = this._state._frameVariables.get(parseInt(frameId));
+		let vars = new Array<DebugProtocol.Variable>();
+		if(frameMap){
+			frameMap.forEach((v: any) => {
+				let refId = 0;
+				let value: string;
+				let name: string;
+				name = v.name;
+				if(v.value instanceof Object){
+					refId = this._state._variableHandles.create(v.value);
+					value = 'Object';
+				}else{
+					value = v.value;
 				}
-				if(variable.type){
-					frameMap.get(variable.name).type = variable.type;
-				}
-			}else{
-				frameMap.set(variable.name, variable);
-			}
-		}else{
-			frameMap = new Map<string,DebugProtocol.Variable>();
-			frameMap.set(variable.name, variable);
-			this._frameVariables.set(frameId, frameMap);
+				vars.push({
+					name: (v.name==null?null:v.name.toString()),
+					type: (v.type==null?null:v.type.toString()),
+					value: (value==null?null:value.toString()),
+					variablesReference: refId
+				});
+			});
 		}
-	}
-}
 
-export class LogLine{
-	public _action: string;
-	public _lineNumber: number;
-	public _parts: Array<string>;
-
-	public constructor(line : string) {
-		this._parts = line.split('|');
-		if(this._parts.length >= 3){
-			this._action = this._parts[1];
-			this._lineNumber = parseInt(this._parts[2].replace('[','').replace(']',''));
-		}else if(line.indexOf('Execute Anonymous:') != -1){
-			this._action = 'execute_anonymous_apex';
-		}
+		return vars;
 	}
-}
 
-class ApexFrame implements DebugProtocol.StackFrame{
-	id: number;
-    source: Source;
-    line: number;
-    column: number;
-    name: string;
-    constructor(i: number, nm: string, src?: Source, ln?: number, col?: number){
-		this.id = i;
-		this.source = src;
-		this.line = ln;
-		this.column = col;
-		this.name = nm;
-	}
 }

@@ -38,7 +38,7 @@ export class ApexDebugSession extends DebugSession {
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, DebugProtocol.Breakpoint[]>();
 
-	private _variableHandles = new Handles<string>();
+	private _variableHandles = new Handles<any>();
 
 	private _projectRoot: string;
 
@@ -126,7 +126,7 @@ export class ApexDebugSession extends DebugSession {
 			}
 		}
 
-		this._frameProcessor = new FrameProcessor(this, logLines, this._classPaths);
+		this._frameProcessor = new FrameProcessor(this, logLines, this._classPaths, this._variableHandles);
 
 		if (args.stopOnEntry) {
 			this.sendResponse(response);
@@ -176,17 +176,6 @@ export class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 	}
 
-	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
-
-		// return the default thread
-		response.body = {
-			threads: [
-				new Thread(ApexDebugSession.THREAD_ID, "thread 1")
-			]
-		};
-		this.sendResponse(response);
-	}
-
 	/**
 	 * Returns a StackTrace
 	 */
@@ -207,9 +196,10 @@ export class ApexDebugSession extends DebugSession {
 
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
 
-		const frameReference = args.frameId;
+		const frameReference =  args.frameId;
 		const scopes = new Array<Scope>();
 		scopes.push(new Scope("Local", this._variableHandles.create(frameReference.toString()), false));
+		// scopes.push(new Scope("Local", this._variableHandles.create(frameReference.toString()), false));
 
 		response.body = {
 			scopes: scopes
@@ -218,19 +208,56 @@ export class ApexDebugSession extends DebugSession {
 	}
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
-		const id = this._variableHandles.get(args.variablesReference);
-		let frameMap = this._frameProcessor.getFrameVariables(id);
+		let vars = new Array<DebugProtocol.Variable>();
 
-		let variables = [];
-		if(frameMap){
-			frameMap.forEach((value: DebugProtocol.Variable) => {
-				variables.push(value);
-			});
+		const h = this._variableHandles.get(args.variablesReference);
+		if(h instanceof Object){
+			for (let property in h) {
+				if (h.hasOwnProperty(property)) {
+					let v = h[property];
+					let value: string;
+					let refId = 0;
+					if(v instanceof Object){
+						refId = this._variableHandles.get(v);
+						value = 'Object';
+					}else{
+						value = h[property];
+					}
+					vars.push({
+						name: property.toString(),
+						value: value.toString(),
+						variablesReference: 0
+					});
+					// vars.push({
+					// 	name: 'test',
+					// 	type: 'v.type',
+					// 	value: 'obj',
+					// 	variablesReference: 0
+					// })
+				}
+			}
+		}else{
+			let frameMap = this._frameProcessor.getFrameVariables(h);
+
+			if(frameMap){
+				frameMap.forEach((value: DebugProtocol.Variable) => {
+					vars.push(value);
+				});
+			}
 		}
 
 		response.body = {
-			variables: variables
+			variables: vars
 		};
+
+		// response.body = {
+		// 	variables: [{
+		// 			name: 'test',
+		// 			type: 'v.type',
+		// 			value: 'obj',
+		// 			variablesReference: 1
+		// 		}]
+		// };
 		this.sendResponse(response);
 	}
 
@@ -320,6 +347,17 @@ export class ApexDebugSession extends DebugSession {
 		// stop sending custom events
 		clearInterval(this._timer);
 		super.disconnectRequest(response, args);
+	}
+
+	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
+
+		// return the default thread
+		response.body = {
+			threads: [
+				new Thread(ApexDebugSession.THREAD_ID, "thread 1")
+			]
+		};
+		this.sendResponse(response);
 	}
 
 	/* === Private Methods === */
