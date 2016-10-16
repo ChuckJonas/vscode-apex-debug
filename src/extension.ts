@@ -1,6 +1,7 @@
 'use strict';
 
 import * as vscode from 'vscode';
+import {statSync} from 'fs';
 
 const initialConfigurations =
 	[{
@@ -17,13 +18,17 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand('extension.apex.getLogName', () => {
 		return vscode.workspace.findFiles('**/debug/logs/*.log', '').then(
 		(result: vscode.Uri[]) => {
-			let items = new Array<string>()
+			let files = new Array<string>()
 			for(let i = 0; i < result.length; i++){
 				let f = result[i];
-				items.push(f.path);
+				files.push(f.path);
 			}
+			files.sort(function(a, b) {
+               return statSync(b).mtime.getTime() -
+                      statSync(a).mtime.getTime();
+            });
 
-			return vscode.window.showQuickPick(items, {
+			return vscode.window.showQuickPick(files, {
 						placeHolder: "Please select a log file"
 			});
 		},
