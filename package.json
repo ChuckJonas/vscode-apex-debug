@@ -1,7 +1,7 @@
 {
     "name": "apex-debug",
     "displayName": "Salesforce Apex Debug",
-    "version": "0.5.12",
+    "version": "0.5.13",
     "publisher": "chuckjonas",
     "description": "Open Source extension for Salesforce debugging",
     "author": {

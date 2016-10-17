@@ -1,6 +1,6 @@
 import {LogInstruction,MethodEntry,MethodExit,
 		StatementExecute,VariableScopeBegin,
-		VariableAssignment,UserDebug,NoOp,ApexEntry} from './LogInstructions';
+		VariableAssignment,UserDebug,NoOp,ApexEntry} from './logInstructions';
 
 export class LogInstructionFactory{
 
@@ -38,7 +38,10 @@ export class LogInstructionFactory{
 				case 'USER_DEBUG':
 					return new UserDebug(parts);
 
+				//[TODO]
 				// case 'CODE_UNIT_STARTED':
+				// case 'EXCEPTION_THROWN':
+				// case 'FATAL_ERROR':
 
 				//noop
 				default:

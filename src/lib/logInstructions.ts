@@ -118,6 +118,7 @@ export class StatementExecute extends LogLine implements LogInstruction{
 		super(parts);
 	}
 	public execute(state: ProgramState){
+		if(state._frames.length == 0) return false;
 		let currentFrame = state.getCurrentFrame();
 
 		if(currentFrame.name == 'Execute Anonymous'){
@@ -149,8 +150,11 @@ export class VariableScopeBegin extends LogLine implements LogInstruction{
 		this._static = (parts[6] === 'true');
 	}
 	public execute(state: ProgramState){
+		if(state._frames.length == 0) return false;
+
 		let obj = {"name":this._name, "type": this._type, "static": this._static};
 		state.setFrameVariable(state.getCurrentFrame().id, obj);
+
 		return false;
 	}
 }
@@ -169,6 +173,8 @@ export class VariableAssignment extends LogLine implements LogInstruction{
 		this._address = parts[5];
 	}
 	public execute(state: ProgramState){
+		if(state._frames.length == 0 ) return false;
+
 		let valueObj;
 		if(this._value.indexOf('0x') == 0 && state._heap.has(this._value)){
 			// this._value = state._heap.get(this._value );

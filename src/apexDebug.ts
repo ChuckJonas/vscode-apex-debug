@@ -42,7 +42,6 @@ export class ApexDebugSession extends DebugSession {
 
 	private _projectRoot: string;
 
-	private _timer;
 
 	private _frameProcessor : FrameProcessor;
 
@@ -114,7 +113,7 @@ export class ApexDebugSession extends DebugSession {
 
 		let logLines = new Array<string>();
 
-		//load anyon lines seperately
+		//check file
 		logLines = readFileSync(this._logFile).toString().split('\n');
 		if(logLines[0].indexOf('APEX_CODE,FINEST')==-1 || logLines[0].indexOf('SYSTEM,FINE')==-1){
 			throw new TypeError('Log does not have proper levels. Set Debug levels to `APEX_CODE=FINEST` && `SYSTEM=FINE`');
@@ -267,6 +266,8 @@ export class ApexDebugSession extends DebugSession {
 		while(this._frameProcessor.hasLines()){
 			this._frameProcessor.setNextFrame();
 			if(this.checkBreakpoints()){
+				this.sendResponse(response);
+				this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
 				return;
 			}
 		}
@@ -274,12 +275,14 @@ export class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 		// no more lines: run to end
 		this.sendEvent(new TerminatedEvent());
+
 	}
 
 	//step into: get next frame update
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void{
 		this._frameProcessor.setNextFrame();
 		if(this._frameProcessor.hasLines()){
+			this.sendResponse(response);
 			this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 			return;
 		}
@@ -287,6 +290,7 @@ export class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 		// no more lines: run to end
 		this.sendEvent(new TerminatedEvent());
+
 	}
 
 	//step out: run until stack size reduces
@@ -295,9 +299,12 @@ export class ApexDebugSession extends DebugSession {
 		while(this._frameProcessor.hasLines()){
 			this._frameProcessor.setNextFrame();
 			if(this.checkBreakpoints()){
+				this.sendResponse(response);
+				this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
 				return;
 			}
 			if(this._frameProcessor.getFrames().length < currentDepth){
+				this.sendResponse(response);
 				this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 				return;
 			}
@@ -306,24 +313,22 @@ export class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 		// no more lines: run to end
 		this.sendEvent(new TerminatedEvent());
+
 	}
 
 	//step over: run until stack size is same as current
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 
 		let currentDepth = this._frameProcessor.getFrames().length;
-		let newFrames = false
 		while(this._frameProcessor.hasLines()){
 			this._frameProcessor.setNextFrame();
 			if(this.checkBreakpoints()){
+				this.sendResponse(response);
+				this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
 				return;
 			}
-			if(this._frameProcessor.getFrames().length > currentDepth){ //added frames
-				newFrames = true;
-			}else if(this._frameProcessor.getFrames().length == currentDepth){
-				this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
-				return;
-			}else{
+			if(this._frameProcessor.getFrames().length <= currentDepth){
+				this.sendResponse(response);
 				this.sendEvent(new StoppedEvent("step", ApexDebugSession.THREAD_ID));
 				return;
 			}
@@ -332,6 +337,7 @@ export class ApexDebugSession extends DebugSession {
 		this.sendResponse(response);
 		// no more lines: run to end
 		this.sendEvent(new TerminatedEvent());
+
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -344,8 +350,7 @@ export class ApexDebugSession extends DebugSession {
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		// stop sending custom events
-		clearInterval(this._timer);
+		// this.sendResponse(response);
 		super.disconnectRequest(response, args);
 	}
 
@@ -364,6 +369,7 @@ export class ApexDebugSession extends DebugSession {
 
 	private checkBreakpoints(): boolean{
 		let currentFrame = this._frameProcessor.getCurrentFrame();
+		if(!currentFrame) return false;
 
 		//find breakpoints that match frame file
 		var breakpoints = this._breakPoints.get(currentFrame.source.path);
@@ -371,13 +377,12 @@ export class ApexDebugSession extends DebugSession {
 			for(let i = 0; i < breakpoints.length; i++){
 				let breakpoint = breakpoints[i];
 				if(currentFrame.line == breakpoint.line){
-					this.sendEvent(new StoppedEvent("breakpoint", ApexDebugSession.THREAD_ID));
 					return true;
 				}
 			}
 		}
+		return false;
 	}
-
 }
 
 DebugSession.run(ApexDebugSession);
