@@ -10,31 +10,37 @@ but it is not connected to any real debugger.
 
 ### Configuring Apex Debug
 
-* Install **Mavensmate** Extension (required dependency)
+* Install [Mavensmate Extension](https://marketplace.visualstudio.com/items?itemName=DavidHelmer.mavensmate#review-details) (required dependency)
 * Install the **Apex Debug** extension in VS Code.
 * Create/Open a Mavensmate project
 * Check that `config/.local_store` has been populated
-* Add a new file to the project root called `debug.log`
-* add new `launch.json` by going to the Debug view, clicking the 'Gear' icon and selecting `Apex-Debug`
-* You can replace `${command.AskForProgramName}` with a hardcoded filename, but it the debug log must remain at the root of the workspace (for now)
+* add new `launch.json` by going to the Debug view, clicking the 'gear' icon and selecting `Apex-Debug`
+  * `workspaceRoot` must point to the root of a mavensmate project
+  * You can set `logFile` to a hardcoded value, if desired.  `${command.AskForLogName}` will allow you to select files from `debug\logs\`
 
 ### Running Debugger
 
-* Set `apex` log level to `Finest` in `/config/.debug`
+* Set log levels in `/config/.debug` to `"ApexCode": "FINEST"` & `"System": "FINE"`
 * run `Mavensmate: Start logging` from command pallet
-* Run Anyonmous Apex (currenly only execution type supported)
-* Copy downloaded log text to `debug.log` file
+* Trigger a log event (Run Anyonmous Apex, load a page, etc)
 * Switch into Debug View
-* Press the green 'play' button to start debugging.
+* Press the green 'play' button
+* Select a file (if not hardcoded in `launch.json`)
+
+### Usage Notes
+
+* If your classes change from the time you generated the log, things will certainly break
+* If your log gets too long, Salesforce will truncate it.  Try reducing non-required levels.
+* Depending on the execution type, some lines might never be stepped on, dispite the fact they were actually executed.  *Don't rely on the fact that a breakpoint wasn't hit to indicate that the line was not executed*
+* This will probably never be perfect (although it can be much better than it currently is).  Salesforce only gives us so much info to work with.
 
 ## [TODO]
 
 * Better exception handling
-* Add support for other execution types (visualforce, batch, etc)
-* Improve Configuration and Launch process
-* Improve Stack Variable display
+* Add/Improve support for all execution types (Visualforce, tests, batch, etc)
+* Improve stack variable display
 * Get rid of redudant/bad steps
-* Add support for break on exception and watch variables
+* Add support for break on exception and watch variables?! (maybe)
 * Add test coverage
 * Hook up to CI process
 
