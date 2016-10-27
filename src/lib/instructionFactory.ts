@@ -15,11 +15,11 @@ export class LogInstructionFactory{
 				//add new frames
 				case 'CONSTRUCTOR_ENTRY':
 				case 'METHOD_ENTRY':
-				// case 'SYSTEM_METHOD_ENTRY':
+				case 'SYSTEM_METHOD_ENTRY':
 					return new MethodEntry(parts);
 
 				//pop frames
-				// case 'SYSTEM_METHOD_EXIT':
+				case 'SYSTEM_METHOD_EXIT':
 				case 'METHOD_EXIT':
 				case 'CONSTRUCTOR_EXIT':
 				case 'SYSTEM_CONSTRUCTOR_EXIT':

@@ -56,9 +56,9 @@ export class MethodEntry extends LogLine implements LogInstruction{
 		}
 	}
 	public execute(state: ProgramState){
-		if(this._signiture.indexOf('System.')==0){
-			return false;
-		}
+		// if(this._signiture.indexOf('System.')==0){
+		// 	return false;
+		// }
 
 		let classSource;
 		if(this._classId != null){
@@ -167,9 +167,9 @@ export class MethodExit extends LogLine implements LogInstruction{
 		}
 	}
 	public execute(state: ProgramState){
-		if(this._signiture.indexOf('System.')==0){
-			return false;
-		}
+		// if(this._signiture.indexOf('System.')==0){
+		// 	return false;
+		// }
 		let cFrame = state.getCurrentFrame();
 		if(state.getCurrentFrame().name.split('.')[0] == this._signiture.split('.')[0]){
 			state._lastPoppedFrame = state._frames.pop();
