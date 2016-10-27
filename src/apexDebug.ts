@@ -42,7 +42,6 @@ export class ApexDebugSession extends DebugSession {
 
 	private _projectRoot: string;
 
-
 	private _frameProcessor : FrameProcessor;
 
 	/**

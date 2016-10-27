@@ -15,7 +15,7 @@
 		},
 		{
 			"name": "Run Server",
-			"type": "node",
+			"type": "node2",
 			"request": "launch",
 			"runtimeArgs": [ "--nolazy" ],
 			"program": "${workspaceRoot}/src/apexDebug.ts",
