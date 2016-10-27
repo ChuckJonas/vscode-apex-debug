@@ -1,7 +1,7 @@
 {
     "name": "apex-debug",
     "displayName": "Salesforce Apex Debug",
-    "version": "0.5.17",
+    "version": "0.5.18",
     "publisher": "chuckjonas",
     "description": "Open Source extension for Salesforce debugging",
     "author": {
@@ -86,6 +86,11 @@
                                 "type": "boolean",
                                 "description": "Automatically stop after launch.",
                                 "default": true
+                            },
+                            "traceLog": {
+                                "type": "boolean",
+                                "description": "Outputs processed Log Lines to the console",
+                                "default": false
                             }
                         }
                     }

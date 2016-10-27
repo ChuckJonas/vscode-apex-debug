@@ -18,6 +18,25 @@ but it is not connected to any real debugger.
   * `workspaceRoot` must point to the root of a mavensmate project
   * You can set `logFile` to a hardcoded value, if desired.  `${command.AskForLogName}` will allow you to select files from `debug\logs\`
 
+#### Example launch.json
+
+``` json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Apex-Debug",
+            "type": "apex",
+            "request": "launch",
+            "logFile": "${command.AskForLogName}",
+            "workspaceRoot": "${workspaceRoot}",
+            "stopOnEntry": true,
+            "traceLog": false //output log lines as they are processed
+        }
+    ]
+}
+```
+
 ### Running Debugger
 
 * Set log levels in `/config/.debug` to `"ApexCode": "FINEST"` & `"System": "FINE"`

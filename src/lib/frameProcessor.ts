@@ -13,20 +13,27 @@ export class FrameProcessor{
 	//refactored
 	private _logInstructionFactory : LogInstructionFactory;
 	private _state : ProgramState;
+	private _traceLog: boolean;
+	private _debugSession: ApexDebugSession;
 
 	public constructor(debugSession : ApexDebugSession, logLines : Array<string>,
-		classPaths : Map<string, string>, variableHandles : Handles<string>) {
+		classPaths : Map<string, string>, variableHandles : Handles<string>, traceLog: boolean) {
+        this._debugSession = debugSession;
 
 		this._logInstructionFactory = new LogInstructionFactory();
 
 		this._state = new ProgramState(debugSession, logLines, classPaths, variableHandles);
 
+		this._traceLog = traceLog;
 	}
 
 	public setNextFrame(){
 		while (this.hasLines()) {
 
 			let line = this._state._logLines[this._state._logPointer];
+			if(this._traceLog){
+				this._debugSession.log(line + '\n');
+			}
 			console.log('LN:' + (this._state._logPointer+1) + ' | ' + line);
 			this._state._logPointer++;
 

@@ -20,6 +20,9 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	logFile: string;
 	// Automatically stop target after launch. If not specified, target does not stop.
 	stopOnEntry?: boolean;
+
+	//outputs LogLines to the console as they are processed
+	traceLog?: boolean;
 }
 
 export class ApexDebugSession extends DebugSession {
@@ -42,7 +45,7 @@ export class ApexDebugSession extends DebugSession {
 
 	private _projectRoot: string;
 
-	private _frameProcessor : FrameProcessor;
+	private _frameProcessor: FrameProcessor;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -115,16 +118,20 @@ export class ApexDebugSession extends DebugSession {
 		//check file
 		logLines = readFileSync(this._logFile).toString().split('\n');
 		if(logLines[0].indexOf('APEX_CODE,FINEST')==-1 || logLines[0].indexOf('SYSTEM,FINE')==-1){
-			throw new TypeError('Log does not have proper levels. Set Debug levels to `APEX_CODE=FINEST` && `SYSTEM=FINE`');
+			this.log('WARNING: Log does not have proper levels. Unexpected behavoir will likely occur. Set Debug levels to `APEX_CODE=FINEST` && `SYSTEM=FINE` \n');
 		}
 		for(let i = 0; i < logLines.length; i++){
 			let s = logLines[i];
 			if(s.indexOf('*** Skipped') == 0){
-				throw new TypeError('Log Was truncated due to length... Try reducing log levels');
+				this.log('WARNING: Log Was truncated due to length... Try reducing log levels \n');
+				// throw new TypeError('Log Was truncated due to length... Try reducing log levels');
+			}else if(s.indexOf('* MAXIMUM DEBUG LOG SIZE REACHED *') >= 0){
+				this.log('WARNING: Log Was truncated due to length... Try reducing log levels \n');
+				// throw new TypeError('Log Was truncated due to length... Try reducing log levels');
 			}
 		}
 
-		this._frameProcessor = new FrameProcessor(this, logLines, this._classPaths, this._variableHandles);
+		this._frameProcessor = new FrameProcessor(this, logLines, this._classPaths, this._variableHandles, args.traceLog);
 
 		if (args.stopOnEntry) {
 			this.sendResponse(response);

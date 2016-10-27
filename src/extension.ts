@@ -10,7 +10,8 @@ const initialConfigurations =
 		request: 'launch',
 		logFile: '${command.AskForLogName}',
 		workspaceRoot: '${workspaceRoot}',
-		stopOnEntry: true
+		stopOnEntry: true,
+		traceLog: false
 	}];
 
 export function activate(context: vscode.ExtensionContext) {

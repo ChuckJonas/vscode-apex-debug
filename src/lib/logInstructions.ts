@@ -56,9 +56,9 @@ export class MethodEntry extends LogLine implements LogInstruction{
 		}
 	}
 	public execute(state: ProgramState){
-		// if(this._signiture.indexOf('System.')==0){
-		// 	return false;
-		// }
+		if(this._signiture.indexOf('System.debug(ANY)')==0){
+			return false;
+		}
 
 		let classSource;
 		if(this._classId != null){
@@ -248,17 +248,22 @@ export class VariableAssignment extends LogLine implements LogInstruction{
 		}else{
 			try{
 			valueObj = JSON.parse(this._value);
-			for (let property in valueObj) {
-				if (valueObj.hasOwnProperty(property)) {
-					let v = valueObj[property];
-					if(typeof v === 'string'
-						&& v.indexOf('0x') == 0){
-						if(state._heap.has(v)){
-							valueObj[property] = state._heap.get(v);
+			if(!(valueObj instanceof Object)){
+				valueObj = null;
+			}else{
+				for (let property in valueObj) {
+					if (valueObj.hasOwnProperty(property)) {
+						let v = valueObj[property];
+						if(typeof v === 'string'
+							&& v.indexOf('0x') == 0){
+							if(state._heap.has(v)){
+								valueObj[property] = state._heap.get(v);
+							}
 						}
 					}
 				}
 			}
+
 			}catch(e){}
 		}
 
@@ -282,7 +287,8 @@ export class UserDebug extends LogLine implements LogInstruction{
 
 	}
 	public execute(state: ProgramState){
-		state._debugSession.log(`Debug: ${this._message}\n`);
+		let cFrame = state.getCurrentFrame();
+		state._debugSession.log(`Debug[${cFrame.name}|${this._lineNumber}]: ${this._message}\n`);
 		return false;
 	}
 }
