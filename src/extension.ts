@@ -3,8 +3,9 @@
 import * as vscode from 'vscode';
 import {statSync} from 'fs';
 
-const initialConfigurations =
-	[{
+const initialConfigurations = {
+    "version": "0.2.0",
+    "configurations": [{
 		name: 'Apex-Debug',
 		type: 'apex',
 		request: 'launch',
@@ -12,7 +13,8 @@ const initialConfigurations =
 		workspaceRoot: '${workspaceRoot}',
 		stopOnEntry: true,
 		traceLog: false
-	}];
+	}]
+};
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -42,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	context.subscriptions.push(vscode.commands.registerCommand('extension.apex.provideInitialConfigurations', () => {
-		return JSON.stringify(initialConfigurations);
+		return JSON.stringify(initialConfigurations, null, 2);
 	}));
 
 }

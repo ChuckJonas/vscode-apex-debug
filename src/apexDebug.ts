@@ -20,7 +20,6 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	logFile: string;
 	// Automatically stop target after launch. If not specified, target does not stop.
 	stopOnEntry?: boolean;
-
 	//outputs LogLines to the console as they are processed
 	traceLog?: boolean;
 }
@@ -223,7 +222,7 @@ export class ApexDebugSession extends DebugSession {
 					let value: string;
 					let refId = 0;
 					if(v instanceof Object){
-						refId = this._variableHandles.get(v);
+						refId = this._variableHandles.create(v);
 						value = 'Object';
 					}else{
 						value = h[property];
@@ -231,7 +230,7 @@ export class ApexDebugSession extends DebugSession {
 					vars.push({
 						name: property.toString(),
 						value: value.toString(),
-						variablesReference: 0
+						variablesReference: refId
 					});
 					// vars.push({
 					// 	name: 'test',

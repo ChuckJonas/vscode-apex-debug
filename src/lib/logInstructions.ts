@@ -244,25 +244,25 @@ export class VariableAssignment extends LogLine implements LogInstruction{
 
 		let valueObj;
 		if(this._value.indexOf('0x') == 0 && state._heap.has(this._value)){
-			// this._value = state._heap.get(this._value );
+			this._value = state._heap.get(this._value);
 		}else{
 			try{
-			valueObj = JSON.parse(this._value);
-			if(!(valueObj instanceof Object)){
-				valueObj = null;
-			}else{
-				for (let property in valueObj) {
-					if (valueObj.hasOwnProperty(property)) {
-						let v = valueObj[property];
-						if(typeof v === 'string'
-							&& v.indexOf('0x') == 0){
-							if(state._heap.has(v)){
-								valueObj[property] = state._heap.get(v);
+				valueObj = JSON.parse(this._value);
+				if(!(valueObj instanceof Object)){
+					valueObj = null;
+				}else{
+					for (let property in valueObj) {
+						if (valueObj.hasOwnProperty(property)) {
+							let v = valueObj[property];
+							if(typeof v === 'string'
+								&& v.indexOf('0x') == 0){
+								if(state._heap.has(v)){
+									valueObj[property] = state._heap.get(v);
+								}
 							}
 						}
 					}
 				}
-			}
 
 			}catch(e){}
 		}
