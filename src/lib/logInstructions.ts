@@ -103,6 +103,10 @@ export class CodeUnitStarted extends LogLine implements LogInstruction{
 
 		//don't push any more frames if in a workflow... they don't properly exit
 
+		if(this._type.indexOf('VF:') == 0){
+			return false;
+		}
+
 		if(state._frames.length && state.getCurrentFrame().name.indexOf('Workflow:') == 0){
 			return false;
 		}
@@ -172,7 +176,9 @@ export class MethodExit extends LogLine implements LogInstruction{
 		// }
 		let cFrame = state.getCurrentFrame();
 		if(state.getCurrentFrame().name.split('.')[0] == this._signiture.split('.')[0]){
-			state._lastPoppedFrame = state._frames.pop();
+			if(state._frames.length > 1){ //don't pop last frame... SF lying to you
+				state._lastPoppedFrame = state._frames.pop();
+			}
 		}
 		// return;
 		return false;
