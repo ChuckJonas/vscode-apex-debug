@@ -29,12 +29,10 @@ export class FrameProcessor{
 
 	public setNextFrame(){
 		while (this.hasLines()) {
-
 			let line = this._state._logLines[this._state._logPointer];
 			if(this._traceLog){
 				this._debugSession.log(line + '\n');
 			}
-			console.log('LN:' + (this._state._logPointer+1) + ' | ' + line);
 			this._state._logPointer++;
 
 			let instruction = this._logInstructionFactory.getInstruction(line);

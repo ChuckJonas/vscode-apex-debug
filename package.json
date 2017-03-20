@@ -25,18 +25,18 @@
         "url": "https://github.com/chuckjonas/vscode-apex-debug/issues"
     },
     "dependencies": {
-        "vscode-debugprotocol": "^1.13.0",
-        "vscode-debugadapter": "^1.13.0"
+       	"vscode-debugprotocol": "^1.18.0-pre.2",
+		"vscode-debugadapter": "^1.18.0-pre.4"
     },
     "devDependencies": {
         "@types/es6-collections": "^0.5.29",
         "@types/es6-promise": "0.0.32",
-        "@types/mocha": "^2.2.32",
-        "@types/node": "^6.0.39",
-        "typescript": "^2.0.2",
+        "@types/mocha": "^2.2.33",
+		"@types/node": "^6.0.50",
+        "typescript": "^2.0.10",
         "mocha": "^3.0.2",
-        "vscode": "^0.11.18",
-        "vscode-debugadapter-testsupport": "^1.13.0"
+        "vscode": "^1.0.3",
+        "vscode-debugadapter-testsupport": "^1.17.0"
     },
     "scripts": {
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",

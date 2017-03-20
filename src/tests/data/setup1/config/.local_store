@@ -1,0 +1,50 @@
+{
+    "Bar.cls": {
+        "id": "01p3600000HuljcAAB",
+        "name": "Bar",
+        "createdDate": "2016-10-13T00:12:12.000+0000",
+        "createdById": "00536000001iGoNAAU",
+        "namespacePrefix": null,
+        "lastModifiedById": "00536000001iGoNAAU",
+        "lastModifiedDate": "2017-03-20T18:37:37.000+0000",
+        "fullName": "Bar",
+        "fileName": "unpackaged/classes/Bar.cls",
+        "createdByName": "charles jonas",
+        "lastModifiedByName": "charles jonas",
+        "manageableState": "unmanaged",
+        "type": "ApexClass",
+        "mmState": "clean"
+    },
+	    "MyControllerExtension.cls": {
+        "id": "01p3600000IViFTAA1",
+        "name": "MyControllerExtension",
+        "createdDate": "2017-03-20T19:12:50.000+0000",
+        "createdById": "00536000001iGoNAAU",
+        "namespacePrefix": null,
+        "lastModifiedById": "00536000001iGoNAAU",
+        "lastModifiedDate": "2017-03-20T19:44:28.000+0000",
+        "fullName": "MyControllerExtension",
+        "fileName": "unpackaged/classes/MyControllerExtension.cls",
+        "createdByName": "charles jonas",
+        "lastModifiedByName": "charles jonas",
+        "manageableState": "unmanaged",
+        "type": "ApexClass",
+        "mmState": "clean"
+    },
+    "MyTestPage.page": {
+        "id": "06636000006pqxBAAQ",
+        "name": "MyTestPage",
+        "createdDate": "2017-03-20T19:31:14.000+0000",
+        "createdById": "00536000001iGoNAAU",
+        "namespacePrefix": null,
+        "lastModifiedById": "00536000001iGoNAAU",
+        "lastModifiedDate": "2017-03-20T19:45:24.000+0000",
+        "fullName": "MyTestPage",
+        "fileName": "unpackaged/pages/MyTestPage.page",
+        "createdByName": "charles jonas",
+        "lastModifiedByName": "charles jonas",
+        "manageableState": "unmanaged",
+        "type": "ApexPage",
+        "mmState": "clean"
+    }
+}

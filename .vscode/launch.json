@@ -1,5 +1,11 @@
 {
 	"version": "0.2.0",
+	 "compounds": [
+	{
+	    "name": "Debug Tests",
+	    "configurations": ["Server", "Tests"]
+	}
+    ],
 	"configurations": [
 		{
 			"name": "Run Extension",
@@ -14,7 +20,7 @@
 			"preLaunchTask": "npm"
 		},
 		{
-			"name": "Run Server",
+			"name": "Server",
 			"type": "node2",
 			"request": "launch",
 			"runtimeArgs": [ "--nolazy" ],
@@ -26,11 +32,11 @@
 			"cwd": "${workspaceRoot}"
 		},
 		{
-			"name": "Run Tests",
 			"type": "node",
 			"request": "launch",
+			"name": "Tests",
+			"cwd": "${workspaceRoot}",
 			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-			"runtimeArgs": [ "--nolazy" ],
 			"args": [
 				"-u", "tdd",
 				"--timeout", "999999",
@@ -38,8 +44,7 @@
 				"./out/tests/"
 			],
 			"sourceMaps": true,
-			"outDir": "${workspaceRoot}/out",
-			"cwd": "${workspaceRoot}",
+			"outFiles": [ "${workspaceRoot}/out/**/*.js" ],
 			"internalConsoleOptions": "openOnSessionStart"
 		}
 	]

@@ -1,0 +1,6 @@
+<apex:page standardController="Account" extensions="MyControllerExtension" showHeader="true" sidebar="true" action="{!loadAction}">
+    <apex:form>
+        <apex:commandButton value="Do Bar" action="{!fooBar}" />
+        <apex:inputText value="{!var2}" />
+    </apex:form>
+</apex:page>

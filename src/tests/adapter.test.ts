@@ -9,13 +9,14 @@ import assert = require('assert');
 import * as Path from 'path';
 import {DebugClient} from 'vscode-debugadapter-testsupport';
 import {DebugProtocol} from 'vscode-debugprotocol';
+import {LaunchRequestArguments} from '../apexDebug';
 
 suite('Node Debug Adapter', () => {
 
 	const DEBUG_ADAPTER = './out/apexDebug.js';
 
 	const PROJECT_ROOT = Path.join(__dirname, '../../');
-	const DATA_ROOT = Path.join(PROJECT_ROOT, 'src/tests/data/');
+	const DATA_ROOT = Path.join(PROJECT_ROOT, 'src/tests/data');
 
 
 	let dc: DebugClient;
@@ -23,10 +24,10 @@ suite('Node Debug Adapter', () => {
 	setup( () => {
 		dc = new DebugClient('node', DEBUG_ADAPTER, 'apex');
 		return dc.start();
+		// return dc.start(4711); //uncomment to debug tests
 	});
 
 	teardown( () => dc.stop() );
-
 
 	suite('basic', () => {
 
@@ -62,82 +63,265 @@ suite('Node Debug Adapter', () => {
 		});
 	});
 
-	suite('launch', () => {
+	suite('Anyon Apex', () => {
+		let workspace = Path.join(DATA_ROOT, 'setup1');
+		let debugFile = Path.join(workspace, 'anonydebug.log');
+		let barPath = Path.join(workspace, 'src' ,'classes', 'Bar.cls');
+		suite('launch', () => {
 
-		test('should run program to the end', () => {
+			var args: LaunchRequestArguments = {
+					workspaceRoot: workspace,
+					logFile: debugFile,
+					stopOnEntry: false
+			};
 
-			const PROGRAM = Path.join(DATA_ROOT, 'test.md');
+			test('should run program to the end', () => {
 
-			return Promise.all([
-				dc.configurationSequence(),
-				dc.launch({ program: PROGRAM }),
-				dc.waitForEvent('terminated')
-			]);
+				return Promise.all([
+					dc.configurationSequence(),
+					dc.launch(args),
+					dc.waitForEvent('terminated')
+				]);
+			});
+
+			test('should stop on entry', () => {
+
+				const ENTRY_LINE = 2;
+
+				args.stopOnEntry = true;
+
+				return Promise.all([
+					dc.configurationSequence(),
+					dc.launch(args),
+					dc.assertStoppedLocation('entry', {path:debugFile, line: ENTRY_LINE} )
+				]);
+			});
 		});
 
-		test('should stop on entry', () => {
+		suite('steps', () => {
 
-			const PROGRAM = Path.join(DATA_ROOT, 'test.md');
+			var args: LaunchRequestArguments = {
+					workspaceRoot: workspace,
+					logFile: debugFile,
+					stopOnEntry: true
+			};
+
+			test('should step into class method', () => {
+
+				const ENTRY_LINE = 2;
+
+				return Promise.all([
+					dc.configurationSequence(),
+					dc.launch(args),
+					dc.assertStoppedLocation('entry', {path:debugFile, line: ENTRY_LINE} )
+				]).then((res)=>{
+					return Promise.all([
+						dc.nextRequest({threadId:1}),
+						dc.assertStoppedLocation('step', {path:debugFile, line: ENTRY_LINE + 1 } )
+					]);
+				}).then((res)=>{
+					return Promise.all([
+						dc.stepInRequest({threadId:1}),
+						dc.assertStoppedLocation('step', {path:barPath, line: 9 } )
+					]);
+				});
+			});
+		});
+
+		suite('setBreakpoints', () => {
+			test('should stop on a breakpoint', () => {
+				var args: LaunchRequestArguments = {
+					workspaceRoot: workspace,
+					logFile: debugFile,
+					stopOnEntry: false,
+					traceLog: true
+				};
+
+				const BREAKPOINT_LINE = 10;
+
+				return dc.hitBreakpoint(args, { path: barPath, line: BREAKPOINT_LINE })
+				.then(()=>{
+					return Promise.all([
+						dc.stepInRequest({threadId:1}),
+						dc.assertStoppedLocation('step', {path:barPath, line: BREAKPOINT_LINE+1 } )
+					]);
+				})
+			});
+		});
+	});
+
+	suite('Visual Force Postback', () => {
+		let workspace = Path.join(DATA_ROOT, 'setup1');
+		let pageActionDebug = Path.join(workspace, 'vfpageaction.log');
+		let controllerPath = Path.join(workspace, 'src' ,'classes', 'MyControllerExtension.cls');
+		let barPath = Path.join(workspace, 'src' ,'classes', 'Bar.cls');
+
+		var args: LaunchRequestArguments = {
+				workspaceRoot: workspace,
+				logFile: pageActionDebug,
+				stopOnEntry: true
+		};
+
+		test('should step into class method', () => {
+
 			const ENTRY_LINE = 1;
 
 			return Promise.all([
 				dc.configurationSequence(),
-				dc.launch({ program: PROGRAM, stopOnEntry: true }),
-				dc.assertStoppedLocation('entry', { line: ENTRY_LINE } )
-			]);
+				dc.launch(args),
+				dc.assertStoppedLocation('entry', {path:controllerPath, line: ENTRY_LINE} )
+			]).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 16 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 17 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 18 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 45 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.continueRequest({threadId:1})
+				]);
+			})
+		});
+
+		test('should break on action method', () => {
+
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: controllerPath, line: 46 });
+		});
+
+
+		test('should hit breakpoint then step into and out', () => {
+
+			return dc.hitBreakpoint(args, { path: controllerPath, line: 48 })
+			.then(()=>{
+				return Promise.all([
+					dc.stepInRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:barPath, line: 9 } )
+				]);
+			}).then(()=>{
+				return Promise.all([
+					dc.stepOutRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 49 } )
+				]);
+			})
 		});
 	});
 
-	suite('setBreakpoints', () => {
+	suite('Visual Force Page Load', () => {
+		let workspace = Path.join(DATA_ROOT, 'setup1');
+		let pageLoadDebug = Path.join(workspace, 'vfpageload.log');
+		let controllerPath = Path.join(workspace, 'src' ,'classes', 'MyControllerExtension.cls');
+		let barPath = Path.join(workspace, 'src' ,'classes', 'Bar.cls');
 
-		test('should stop on a breakpoint', () => {
+		var args: LaunchRequestArguments = {
+				workspaceRoot: workspace,
+				logFile: pageLoadDebug,
+				stopOnEntry: true
+		};
 
-			const PROGRAM = Path.join(DATA_ROOT, 'test.md');
-			const BREAKPOINT_LINE = 2;
+		test('should step into class method', () => {
 
-			return dc.hitBreakpoint({ program: PROGRAM }, { path: PROGRAM, line: BREAKPOINT_LINE } );
-		});
-
-		test('hitting a lazy breakpoint should send a breakpoint event', () => {
-
-			const PROGRAM = Path.join(DATA_ROOT, 'testLazyBreakpoint.md');
-			const BREAKPOINT_LINE = 3;
+			const ENTRY_LINE = 1;
 
 			return Promise.all([
-
-				dc.hitBreakpoint({ program: PROGRAM }, { path: PROGRAM, line: BREAKPOINT_LINE, verified: false } ),
-
-				dc.waitForEvent('breakpoint').then((event : DebugProtocol.BreakpointEvent ) => {
-					assert.equal(event.body.breakpoint.verified, true, "event mismatch: verified");
-				})
-
-			]);
-
+				dc.configurationSequence(),
+				dc.launch(args),
+				dc.assertStoppedLocation('entry', {path:controllerPath, line: ENTRY_LINE} )
+			]).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 3 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line:5 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 15 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 25 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.continueRequest({threadId:1})
+				]);
+			})
 		});
 
-	});
+		test('should break on constructor', () => {
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: controllerPath, line: 26 });
+		});
 
-	suite('setExceptionBreakpoints', () => {
 
-		test('should stop on an exception', () => {
+		test('step through loop', () => {
 
-			const PROGRAM_WITH_EXCEPTION = Path.join(DATA_ROOT, 'testWithException.md');
-			const EXCEPTION_LINE = 4;
-
-			return Promise.all([
-
-				dc.waitForEvent('initialized').then(event => {
-					return dc.setExceptionBreakpointsRequest({
-						filters: [ 'all' ]
-					});
-				}).then(response => {
-					return dc.configurationDoneRequest();
-				}),
-
-				dc.launch({ program: PROGRAM_WITH_EXCEPTION }),
-
-				dc.assertStoppedLocation('exception', { line: EXCEPTION_LINE } )
-			]);
+			return dc.hitBreakpoint(args, { path: controllerPath, line: 35 })
+			.then(()=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 36 } )
+				]);
+			}).then(()=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: 37 } )
+				]);
+			}).then(()=>{
+				return Promise.all([
+					dc.continueRequest({threadId:1}),
+					dc.assertStoppedLocation('breakpoint', {path:controllerPath, line: 35 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.disconnectRequest({threadId:1})
+				]);
+			})
 		});
 	});
+
 });
+
+	// suite('setExceptionBreakpoints', () => {
+
+	// 	test('should stop on an exception', () => {
+
+	// 		const PROGRAM_WITH_EXCEPTION = Path.join(DATA_ROOT, 'testWithException.md');
+	// 		const EXCEPTION_LINE = 4;
+
+	// 		return Promise.all([
+
+	// 			dc.waitForEvent('initialized').then(event => {
+	// 				return dc.setExceptionBreakpointsRequest({
+	// 					filters: [ 'all' ]
+	// 				});
+	// 			}).then(response => {
+	// 				return dc.configurationDoneRequest();
+	// 			}),
+
+	// 			dc.launch({ program: PROGRAM_WITH_EXCEPTION }),
+
+	// 			dc.assertStoppedLocation('exception', { line: EXCEPTION_LINE } )
+	// 		]);
+	// 	});
+	// });
