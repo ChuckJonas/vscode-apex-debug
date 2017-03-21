@@ -1,7 +1,6 @@
-# Apex Debug (alpha)
-[![Build Status](https://travis-ci.org/ChuckJonas/vscode-apex-debug.svg?branch=master)](https://travis-ci.org/ChuckJonas/vscode-apex-debug)
+# Apex Debug (Beta)
 
-[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/chuckjonas.apex-debug.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=chuckjonas.apex-debug)
+[![Build Status](https://travis-ci.org/ChuckJonas/vscode-apex-debug.svg?branch=master)](https://travis-ci.org/ChuckJonas/vscode-apex-debug) [![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/chuckjonas.apex-debug.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=chuckjonas.apex-debug)
 
 A Visual Studio Code debugger for the Salesforce Apex language.
 
@@ -57,15 +56,25 @@ but it is not connected to any real debugger.
 * Depending on the execution type, some lines might never be stepped on, dispite the fact they were actually executed.  *Don't rely on the fact that a breakpoint wasn't hit to indicate that the line was not executed*
 * This will probably never be perfect (although it can be much better than it currently is).  Salesforce only gives us so much info to work with.
 
+## Supported Opporations
+
+* Set Breakpoint
+* Next
+* Step into
+* Step out
+* Continue
+* Hit Condition Breakpoints (`< 5`, `>= 10`, etc)
+* Variable Inspection (beta)
+
+
 ## [TODO]
 
-* Better exception handling
-* Add/Improve support for all execution types (Visualforce, tests, batch, etc)
+* Remove depedancy on mavensmate
+* Conditional Breakpoints
+* Break on exception
+* Add/Improve support for all execution types (tests, batch, etc)
 * Improve stack variable display
 * Get rid of redudant/bad steps
-* Add support for break on exception and watch variables?! (maybe)
-* Add test coverage
-* Hook up to CI process
 
 ## Contributing
 
