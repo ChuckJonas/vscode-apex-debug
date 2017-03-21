@@ -4,7 +4,7 @@
 
 A Visual Studio Code debugger for the Salesforce Apex language.
 
-**'Log Reply' Debugging** simulates Apex debugging by reading a log file and restructing stack frames.
+**'Log Reply' Debugging** simulates Apex debugging by reading a log file and reconstructing stack frames.
 
 Supports *step*, *step-into*, *step-return*, *continue* and *breakpoints*
 but it is not connected to any real debugger.
@@ -44,7 +44,8 @@ but it is not connected to any real debugger.
 
 * Set log levels in `/config/.debug` to `"ApexCode": "FINEST"` & `"System": "FINE"`
 * run `Mavensmate: Start logging` from command pallet
-* Trigger a log event (Run Anyonmous Apex, load a page, etc)
+  * NOTE: There is a known issue with mavensmate where logs are not downloaded when using API v37 and above. Set API version to 36 in `Mavenmsate: Global Settings` in order to stream logs.
+* Trigger a log event (Run Anyonmous Apex, load a page, etc).  File should show up in `debug/logs`.
 * Switch into Debug View
 * Press the green 'play' button
 * Select a file (if not hardcoded in `launch.json`)
@@ -52,7 +53,7 @@ but it is not connected to any real debugger.
 ### Usage Notes
 
 * If your classes change from the time you generated the log, things will certainly break
-* If your log gets too long, Salesforce will truncate it.  Try reducing non-required levels.
+* If your log gets too long, Salesforce will truncate it.  Try reducing non-required levels (use `NONE`).
 * Depending on the execution type, some lines might never be stepped on, dispite the fact they were actually executed.  *Don't rely on the fact that a breakpoint wasn't hit to indicate that the line was not executed*
 * This will probably never be perfect (although it can be much better than it currently is).  Salesforce only gives us so much info to work with.
 
