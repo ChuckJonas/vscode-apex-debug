@@ -1,4 +1,8 @@
 # Apex Debug (alpha)
+[![Build Status](https://travis-ci.org/ChuckJonas/vscode-apex-debug.svg?branch=master)](https://travis-ci.org/ChuckJonas/vscode-apex-debug)
+
+[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/chuckjonas.apex-debug.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=chuckjonas.apex-debug)
+
 A Visual Studio Code debugger for the Salesforce Apex language.
 
 **'Log Reply' Debugging** simulates Apex debugging by reading a log file and restructing stack frames.

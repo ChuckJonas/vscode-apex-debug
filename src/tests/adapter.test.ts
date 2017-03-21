@@ -223,13 +223,13 @@ suite('Node Debug Adapter', () => {
 
 	suite('Visual Force Page Load', () => {
 		let workspace = Path.join(DATA_ROOT, 'setup1');
-		let pageLoadDebug = Path.join(workspace, 'vfpageload.log');
+		let log = Path.join(workspace, 'vfpageload.log');
 		let controllerPath = Path.join(workspace, 'src' ,'classes', 'MyControllerExtension.cls');
 		let barPath = Path.join(workspace, 'src' ,'classes', 'Bar.cls');
 
 		var args: LaunchRequestArguments = {
 				workspaceRoot: workspace,
-				logFile: pageLoadDebug,
+				logFile: log,
 				stopOnEntry: true
 		};
 
@@ -298,6 +298,130 @@ suite('Node Debug Adapter', () => {
 				]);
 			})
 		});
+	});
+
+	suite('Future Context', () => {
+		let workspace = Path.join(DATA_ROOT, 'setup1');
+		let log = Path.join(workspace, 'futureWException.log');
+		let accountTriggerHelper = Path.join(workspace, 'src' ,'classes', 'AccountTriggerHelper.cls');
+
+		var args: LaunchRequestArguments = {
+				workspaceRoot: workspace,
+				logFile: log,
+				stopOnEntry: true
+		};
+
+		test('should step into class method', () => {
+
+			const ENTRY_LINE = 1;
+
+			return Promise.all([
+				dc.configurationSequence(),
+				dc.launch(args),
+				dc.assertStoppedLocation('entry', {path:accountTriggerHelper, line: ENTRY_LINE} )
+			]).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTriggerHelper, line: 25 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTriggerHelper, line:26 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTriggerHelper, line: 27 } )
+				]);
+			})
+		});
+
+		test('should break on constructor', () => {
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: accountTriggerHelper, line: 26 });
+		});
+
+	});
+
+	suite('Trigger Context', () => {
+		let workspace = Path.join(DATA_ROOT, 'setup1');
+		let log = Path.join(workspace, 'trigger.log');
+		let accountTriggerHelper = Path.join(workspace, 'src' ,'classes', 'AccountTriggerHelper.cls');
+		let accountTrigger= Path.join(workspace, 'src' ,'triggers', 'AccountTrigger.trigger');
+		let triggerHandler = Path.join(workspace, 'src' ,'classes', 'TriggerHandler.cls');
+		let fooBase = Path.join(workspace, 'src' ,'classes', 'FooBase.cls');
+
+		var args: LaunchRequestArguments = {
+				workspaceRoot: workspace,
+				logFile: log,
+				stopOnEntry: true
+		};
+
+		test('should step into class method', () => {
+
+			const ENTRY_LINE = 1;
+
+			return Promise.all([
+				dc.configurationSequence(),
+				dc.launch(args),
+				dc.assertStoppedLocation('entry', {path:accountTrigger, line: ENTRY_LINE} )
+			]).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTrigger, line: 10 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTrigger, line:11 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTrigger, line:12 } )
+				]);
+			})
+		});
+
+		test('should break on trigger', () => {
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: accountTrigger, line: 14 })
+			.then((res)=>{
+				return Promise.all([
+					dc.stepInRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:triggerHandler, line:43 } )
+				]);
+			})
+		});
+
+		test('should break on trigger end', () => {
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: accountTriggerHelper, line: 18 });
+		});
+
+		//tests for logic where method calls are not proceeded with a statement execute
+		test('method execute statement', () => {
+			args.stopOnEntry = false;
+			return dc.hitBreakpoint(args, { path: accountTriggerHelper, line: 8 })
+			.then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTriggerHelper, line:9 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.stepInRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:fooBase, line:3 } )
+				]);
+			}).then((res)=>{
+				return Promise.all([
+					dc.stepOutRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:accountTrigger, line:1 } ) //maybe this should go back to 9?
+				]);
+			})
+		});
+
 	});
 
 });

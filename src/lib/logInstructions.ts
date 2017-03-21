@@ -67,6 +67,14 @@ export class MethodEntry extends LogLine implements LogInstruction{
 			classSource = state.getSourceFromSigniture(this._signiture);
 		}
 
+		var lastFrame =  state.getCurrentFrame();
+		//handle method executes where the statement has not run yet (methods in if statements)
+		if(lastFrame && lastFrame.line && this._lineNumber > lastFrame.line){
+			lastFrame.line = this._lineNumber;
+			state._logPointer--; //rerun this line
+			return true;
+		}
+
 		state._frames.push(
 			new ApexFrame(
 				state._logPointer+1,
@@ -76,6 +84,9 @@ export class MethodEntry extends LogLine implements LogInstruction{
 				0
 			)
 		);
+
+
+
 		return false;
 	}
 }
@@ -175,7 +186,7 @@ export class MethodExit extends LogLine implements LogInstruction{
 		// 	return false;
 		// }
 		let cFrame = state.getCurrentFrame();
-		if(state.getCurrentFrame().name.split('.')[0] == this._signiture.split('.')[0]){
+		if(cFrame && cFrame.name.split('.')[0] == this._signiture.split('.')[0]){
 			if(state._frames.length > 1){ //don't pop last frame... SF lying to you
 				state._lastPoppedFrame = state._frames.pop();
 			}
