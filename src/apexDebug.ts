@@ -8,6 +8,7 @@ import {
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {readFile} from 'fs';
+import * as path from 'path';
 import {FrameProcessor} from './lib/frameProcessor';
 
 /**
@@ -126,8 +127,8 @@ export class ApexDebugSession extends DebugSession {
 
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
-		this._logFile     = args.logFile;
-		this._projectRoot = args.workspaceRoot + '/'
+		this._logFile = args.logFile;
+		this._projectRoot = path.join(args.workspaceRoot, '/');
 
 		//add file for apex
 		new Promise(this.loadClassPaths())
@@ -153,6 +154,7 @@ export class ApexDebugSession extends DebugSession {
 		return new Promise((resolve, reject) => {
 			let logLines = new Array<string>();
 
+            this._logFile = this._logFile.replace('/c:','');
 			//check file
 			readFile(this._logFile, (err, data)=>{
 				logLines = data.toString().split('\n');
@@ -178,7 +180,7 @@ export class ApexDebugSession extends DebugSession {
 		return (resolve, reject)=>{
 			this._classPaths.set('_logFile', this._logFile);
 
-			readFile(this._projectRoot + 'config/.local_store', (err, data)=>{
+			readFile(path.join(this._projectRoot, 'config','.local_store'), (err, data)=>{
 				let localStore = JSON.parse(data.toString());
 				for (var property in localStore) {
 					if (localStore.hasOwnProperty(property)) {

@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 			let files = new Array<string>()
 			for(let i = 0; i < result.length; i++){
 				let f = result[i];
-				files.push(f.path);
+				files.push(f.fsPath);
 			}
 			files.sort(function(a, b) {
                return statSync(b).mtime.getTime() -
