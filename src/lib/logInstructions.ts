@@ -50,13 +50,19 @@ export class MethodEntry extends LogLine implements LogInstruction{
 		super(parts);
 		if(this._action == 'SYSTEM_METHOD_ENTRY'){
 			this._signiture = parts[3];
+		}else if(this._action == 'VF_APEX_CALL_START' && parts.length == 4){
+			this._signiture = parts[3];
 		}else{
 			this._classId  = parts[3];
 			this._signiture = parts[4];
 		}
 	}
 	public execute(state: ProgramState){
-		if(this._signiture.indexOf('System.debug(ANY)')==0){
+		if(!this._signiture && !this._classId){
+			return false;
+		}
+
+		if(this._signiture && this._signiture.indexOf('System.debug(ANY)')==0){
 			return false;
 		}
 
@@ -66,8 +72,11 @@ export class MethodEntry extends LogLine implements LogInstruction{
 		}else{
 			classSource = state.getSourceFromSigniture(this._signiture);
 		}
+		if(!classSource){
+			return false;
+		}
 
-		var lastFrame =  state.getCurrentFrame();
+		var lastFrame = state.getCurrentFrame();
 		//handle method executes where the statement has not run yet (methods in if statements)
 		if(lastFrame && lastFrame.line && this._lineNumber > lastFrame.line){
 			lastFrame.line = this._lineNumber;
@@ -113,11 +122,6 @@ export class CodeUnitStarted extends LogLine implements LogInstruction{
 		let classSource;
 
 		//don't push any more frames if in a workflow... they don't properly exit
-
-		if(this._type.indexOf('VF:') == 0){
-			return false;
-		}
-
 		if(state._frames.length && state.getCurrentFrame().name.indexOf('Workflow:') == 0){
 			return false;
 		}
@@ -179,6 +183,9 @@ export class MethodExit extends LogLine implements LogInstruction{
 		}else if(this._action == 'SYSTEM_CONSTRUCTOR_EXIT'){
 			this._signiture = parts[3];
 			this._isConstructor = true;
+		}else if(this._action == 'VF_APEX_CALL_END'){
+			this._signiture = parts[2];
+			this._isConstructor = false;
 		}
 	}
 	public execute(state: ProgramState){

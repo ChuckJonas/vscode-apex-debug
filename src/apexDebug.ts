@@ -185,7 +185,7 @@ export class ApexDebugSession extends DebugSession {
 				for (var property in localStore) {
 					if (localStore.hasOwnProperty(property)) {
 						var metadata = localStore[property];
-						if(metadata.type == 'ApexClass' || metadata.type == 'ApexTrigger'){
+						if(metadata.type == 'ApexClass' || metadata.type == 'ApexTrigger' || metadata.type == 'ApexPage'){
 							let fileName = this._projectRoot + metadata.fileName.replace('unpackaged','src');
 							//add both id and classname for lookup
 							this._classPaths.set(metadata.id.substring(0, metadata.id.length - 3) , fileName);

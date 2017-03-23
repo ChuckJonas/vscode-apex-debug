@@ -42,7 +42,7 @@ but it is not connected to any real debugger.
 
 ### Running Debugger
 
-* Set log levels in `/config/.debug` to `"ApexCode": "FINEST"` & `"System": "FINE"`
+* Set log levels in `/config/.debug` to `"ApexCode": "FINEST"`, `"System": "FINE"` & `"Visualforce": "FINE"` (now required to debug VF pages!).
 * run `Mavensmate: Start logging` from command pallet
   * NOTE: There is a known issue with mavensmate where logs are not downloaded when using API v37 and above. Set API version to 36 in `Mavenmsate: Global Settings` in order to stream logs.
 * Trigger a log event (Run Anyonmous Apex, load a page, etc).  File should show up in `debug/logs`.

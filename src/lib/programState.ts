@@ -42,7 +42,12 @@ export class ProgramState{
 	}
 
 	public getSourceFromSigniture(sig :string): Source{
-		let parts = sig.split('.');
+		let parts: string[];
+		if(sig.indexOf('.') == -1){
+			parts = sig.split(' ');
+		}else{
+			parts = sig.split('.');
+		}
 		return this.getSourceFromId(parts[0]);
 	}
 

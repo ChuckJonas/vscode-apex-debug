@@ -16,6 +16,7 @@ export class LogInstructionFactory{
 				case 'CONSTRUCTOR_ENTRY':
 				case 'METHOD_ENTRY':
 				case 'SYSTEM_METHOD_ENTRY':
+				case 'VF_APEX_CALL_START':
 					return new MethodEntry(parts);
 
 				//pop frames
@@ -24,6 +25,7 @@ export class LogInstructionFactory{
 				case 'CONSTRUCTOR_EXIT':
 				case 'SYSTEM_CONSTRUCTOR_EXIT':
 				case 'CODE_UNIT_FINISHED':
+				case 'VF_APEX_CALL_END':
 					return new MethodExit(parts);
 
 				//execute line number

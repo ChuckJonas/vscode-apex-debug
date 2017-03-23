@@ -128,7 +128,7 @@ suite('Node Debug Adapter', () => {
 			});
 		});
 
-		suite('setBreakpoints', () => {
+		suite('set Breakpoint', () => {
 			test('should stop on a breakpoint', () => {
 				var args: LaunchRequestArguments = {
 					workspaceRoot: workspace,
@@ -242,6 +242,11 @@ suite('Node Debug Adapter', () => {
 				dc.launch(args),
 				dc.assertStoppedLocation('entry', {path:controllerPath, line: ENTRY_LINE} )
 			]).then((res)=>{
+				return Promise.all([
+					dc.nextRequest({threadId:1}),
+					dc.assertStoppedLocation('step', {path:controllerPath, line: ENTRY_LINE } )
+				]);
+			}).then((res)=>{
 				return Promise.all([
 					dc.nextRequest({threadId:1}),
 					dc.assertStoppedLocation('step', {path:controllerPath, line: 3 } )
