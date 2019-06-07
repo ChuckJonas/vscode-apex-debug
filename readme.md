@@ -1,4 +1,6 @@
-# Apex Debug (Beta)
+# Apex Debug (depreciated Use official Saleforce Log Replay Debugger)
+
+
 
 [![Build Status](https://travis-ci.org/ChuckJonas/vscode-apex-debug.svg?branch=master)](https://travis-ci.org/ChuckJonas/vscode-apex-debug) [![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/chuckjonas.apex-debug.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=chuckjonas.apex-debug)
 
